@@ -44,3 +44,23 @@ class DataView(ttk.Frame):
         filters = f"age = {search_term}" if search_term.isdigit() else None
         self.table.delete(*self.table.get_children())
         self.load_data(filters)
+
+    def refresh_data(self):
+        # Clear existing rows in the Treeview
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+
+        # Fetch the latest data from the database
+        query = """
+            SELECT patient_id, usmer, medical_unit, sex, patient_type,
+                   pneumonia, age, diabetes, icu
+            FROM Patients
+            LIMIT 1000
+        """
+        self.master.db_connection.execute_query(query)
+        rows = self.master.db_connection.cursor.fetchall()
+
+        # Insert the fetched data into the Treeview
+        for row in rows:
+            self.tree.insert("", "end", values=row)
+

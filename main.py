@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import tkinter as tk
 from ttkbootstrap import Style
 from gui.login import LoginScreen
