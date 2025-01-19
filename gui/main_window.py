@@ -61,9 +61,7 @@ class MainWindow(ttk.Frame):
         :param notebook: The ttk.Notebook widget where tabs are added.
         """
         if self.user_info["role"] in ["admin", "viewer"]:
-            # Add data viewer tab
-            data_view_tab = DataView(notebook, self.db_connection)
-            notebook.add(data_view_tab, text="Data Viewer")
+
 
             # Add data analysis tab
             analysis_tab = AnalysisView(notebook, self.db_connection)
@@ -73,6 +71,10 @@ class MainWindow(ttk.Frame):
             # Add data upload tab for admin users
             upload_tab = UploadView(notebook, self.db_connection)
             notebook.add(upload_tab, text="Upload Data")
+
+            # Add data viewer tab
+            data_view_tab = DataView(notebook, self.db_connection)
+            notebook.add(data_view_tab, text="Data Viewer")
 
     def _add_logout_button(self):
         """

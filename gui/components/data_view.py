@@ -5,6 +5,9 @@ class DataView(ttk.Frame):
     def __init__(self, parent, db_connection):
         super().__init__(parent)
         self.db_connection = db_connection
+        self.current_page = 1
+        self.rows_per_page = 10
+        self.total_rows = 0
         self.setup_ui()
 
     def setup_ui(self):
@@ -12,54 +15,191 @@ class DataView(ttk.Frame):
         title = ttk.Label(self, text="Data Viewer", font=("TkDefaultFont", 16, "bold"))
         title.pack(pady=10)
 
-        # Search bar
+        # Search frame
         search_frame = ttk.Frame(self)
-        search_frame.pack(fill="x", pady=5)
+        search_frame.pack(fill="x", padx=10, pady=5)
+
         ttk.Label(search_frame, text="Search:").pack(side="left", padx=5)
-        self.search_entry = ttk.Entry(search_frame)
-        self.search_entry.pack(side="left", fill="x", expand=True, padx=5)
-        ttk.Button(search_frame, text="Search", command=self.perform_search, style="primary.TButton").pack(side="left")
+        self.search_field = ttk.Combobox(search_frame,
+                                         values=["Age", "Sex", "Patient Type", "Medical Unit"],
+                                         width=15)
+        self.search_field.set("Age")
+        self.search_field.pack(side="left", padx=5)
 
-        # Data table
-        self.table = ttk.Treeview(self, columns=("ID", "Age", "ICU", "Pneumonia"), show="headings")
-        self.table.heading("ID", text="ID")
-        self.table.heading("Age", text="Age")
-        self.table.heading("ICU", text="ICU")
-        self.table.heading("Pneumonia", text="Pneumonia")
-        self.table.pack(fill="both", expand=True, pady=10)
+        self.search_entry = ttk.Entry(search_frame, width=50)
+        self.search_entry.pack(side="left", padx=5)
 
+        ttk.Button(search_frame, text="Search",
+                   command=self.perform_search,
+                   style="primary.TButton").pack(side="left", padx=5)
+
+        ttk.Button(search_frame, text="Reset",
+                   command=self.load_data).pack(side="left")
+
+        # Rows per page
+        rows_per_page_frame = ttk.Frame(self)
+        rows_per_page_frame.pack(fill="x", padx=10, pady=5)
+
+        ttk.Label(rows_per_page_frame, text="Rows per page:").pack(side="left", padx=5)
+        self.rows_per_page_entry = ttk.Entry(rows_per_page_frame, width=5)
+        self.rows_per_page_entry.insert(0, "10")
+        self.rows_per_page_entry.pack(side="left", padx=5)
+
+        ttk.Button(rows_per_page_frame, text="Apply",
+                   command=self.update_rows_per_page).pack(side="left", padx=5)
+
+        # Create table
+        self.columns = [
+            "patient_id", "usmer", "medical_unit", "sex", "patient_type", "date_died",
+            "intubed", "pneumonia", "age", "pregnant", "diabetes", "copd", "asthma",
+            "inmsupr", "hipertension", "other_disease", "cardiovascular", "obesity",
+            "renal_chronic", "tobacco", "classification_final", "icu"
+        ]
+
+        # Table frame with scrollbars
+        table_frame = ttk.Frame(self)
+        table_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+        self.table = ttk.Treeview(table_frame, columns=self.columns, show="headings", height=20)
+
+        # Scrollbars
+        y_scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.table.yview)
+        x_scrollbar = ttk.Scrollbar(table_frame, orient="horizontal", command=self.table.xview)
+
+        self.table.configure(yscrollcommand=y_scrollbar.set, xscrollcommand=x_scrollbar.set)
+
+        # Grid layout
+        self.table.grid(row=0, column=0, sticky="nsew")
+        y_scrollbar.grid(row=0, column=1, sticky="ns")
+        x_scrollbar.grid(row=1, column=0, sticky="ew")
+
+        table_frame.grid_columnconfigure(0, weight=1)
+        table_frame.grid_rowconfigure(0, weight=1)
+
+        # Configure columns
+        for col in self.columns:
+            display_name = col.replace("_", " ").title()
+            self.table.heading(col, text=display_name,
+                               command=lambda c=col: self.sort_column(c))
+            width = 70 if col in ["patient_id", "age", "usmer"] else 100
+            self.table.column(col, anchor="center", width=width, minwidth=50)
+
+        # Pagination controls
+        pagination_frame = ttk.Frame(self)
+        pagination_frame.pack(fill="x", padx=10, pady=5)
+
+        self.previous_button = ttk.Button(pagination_frame, text="Previous", command=self.previous_page)
+        self.previous_button.pack(side="left", padx=5)
+
+        self.page_label = ttk.Label(pagination_frame, text=f"Page {self.current_page}")
+        self.page_label.pack(side="left", padx=5)
+
+        self.next_button = ttk.Button(pagination_frame, text="Next", command=self.next_page)
+        self.next_button.pack(side="left", padx=5)
+
+        # Load initial data
         self.load_data()
 
     def load_data(self, filters=None):
-        # Query the database and populate the table
-        query = "SELECT patient_id, age, icu, pneumonia FROM Patients"
-        if filters:
-            query += f" WHERE {filters}"
-        self.db_connection.execute_query(query)
-        for row in self.db_connection.cursor.fetchall():
-            self.table.insert("", "end", values=(row['patient_id'], row['age'], row['icu'], row['pneumonia']))
+        try:
+            # Clear the table first
+            for item in self.table.get_children():
+                self.table.delete(item)
+
+            # Calculate offset for pagination
+            offset = (self.current_page - 1) * self.rows_per_page
+
+            # Base query
+            query = """
+                SELECT patient_id, usmer, medical_unit, sex, patient_type, date_died, intubed, pneumonia,
+                       age, pregnant, diabetes, copd, asthma, inmsupr, hipertension, other_disease,
+                       cardiovascular, obesity, renal_chronic, tobacco, classification_final, icu
+                FROM Patients
+            """
+
+            # Add filters if provided
+            if filters:
+                query += f" WHERE {filters}"
+
+            query += f" LIMIT {self.rows_per_page} OFFSET {offset}"
+
+            self.db_connection.execute_query(query)
+            rows = self.db_connection.cursor.fetchall()
+
+            # Insert rows into the table
+            for row in rows:
+                self.table.insert("", "end", values=tuple(row.values()))
+
+            # Update total rows and pagination
+            self.update_total_rows(filters)
+            self.update_pagination_controls()
+        except Exception as e:
+            print(f"Error loading data: {e}")
+
+    def update_total_rows(self, filters=None):
+        try:
+            query = "SELECT COUNT(*) AS total FROM Patients"
+            if filters:
+                query += f" WHERE {filters}"
+
+            self.db_connection.execute_query(query)
+            result = self.db_connection.cursor.fetchone()
+
+            # Check if result is valid
+            if result:
+                self.total_rows = int(result["total"])
+            else:
+                self.total_rows = 0
+        except Exception as e:
+            print(f"Error updating total rows: {e}")
+            self.total_rows = 0
+
+    def update_pagination_controls(self):
+        self.page_label.config(text=f"Page {self.current_page}")
+        self.previous_button.config(state="normal" if self.current_page > 1 else "disabled")
+        total_pages = (self.total_rows + self.rows_per_page - 1) // self.rows_per_page
+        self.next_button.config(state="normal" if self.current_page < total_pages else "disabled")
+
+    def previous_page(self):
+        if self.current_page > 1:
+            self.current_page -= 1
+            self.load_data()
+
+    def next_page(self):
+        total_pages = (self.total_rows + self.rows_per_page - 1) // self.rows_per_page
+        if self.current_page < total_pages:
+            self.current_page += 1
+            self.load_data()
 
     def perform_search(self):
+        search_field = self.search_field.get().lower()
         search_term = self.search_entry.get()
-        filters = f"age = {search_term}" if search_term.isdigit() else None
-        self.table.delete(*self.table.get_children())
+
+        if search_term.isdigit():
+            filters = f"{search_field} = {search_term}"
+        else:
+            filters = f"{search_field} LIKE '%{search_term}%'"
+
+        self.current_page = 1
         self.load_data(filters)
 
+    def update_rows_per_page(self):
+        try:
+            self.rows_per_page = int(self.rows_per_page_entry.get())
+            self.current_page = 1
+            self.load_data()
+        except ValueError:
+            ttk.Messagebox.show_error(title="Error", message="Please enter a valid number for rows per page.")
+
+    def sort_column(self, column):
+        # Sort the table rows by the selected column
+        rows = [(self.table.set(k, column), k) for k in self.table.get_children("")]
+        rows.sort(key=lambda x: x[0])
+
+        # Rearrange rows in sorted order
+        for index, (_, k) in enumerate(rows):
+            self.table.move(k, "", index)
+
     def refresh_data(self):
-        # Clear existing rows in the Treeview
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-
-        # Fetch the latest data from the database
-        query = """
-            SELECT patient_id, usmer, medical_unit, sex, patient_type,
-                   pneumonia, age, diabetes, icu
-            FROM Patients
-            LIMIT 1000
-        """
-        self.master.db_connection.execute_query(query)
-        rows = self.master.db_connection.cursor.fetchall()
-
-        # Insert the fetched data into the Treeview
-        for row in rows:
-            self.tree.insert("", "end", values=row)
+        # Reload all data from the database
+        self.load_data()

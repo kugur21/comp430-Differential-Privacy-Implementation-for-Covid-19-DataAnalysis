@@ -12,7 +12,7 @@ class Application(tk.Tk):
         super().__init__()
         self.style = Style("cosmo")  # Apply a ttkbootstrap theme
         self.title("Privacy-Preserving COVID-19 Data Analysis")
-        self.geometry("800x600")
+        self.geometry("1400x1200")
 
         # Database connection
         self.db = DatabaseConnection()
