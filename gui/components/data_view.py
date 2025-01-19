@@ -63,4 +63,3 @@ class DataView(ttk.Frame):
         # Insert the fetched data into the Treeview
         for row in rows:
             self.tree.insert("", "end", values=row)
-

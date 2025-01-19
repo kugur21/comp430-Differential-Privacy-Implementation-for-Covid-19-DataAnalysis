@@ -3,7 +3,9 @@ from ttkbootstrap import Style
 from gui.login import LoginScreen
 from gui.main_window import MainWindow
 from database.connection import DatabaseConnection
+from database.initializer import initialize_database
 from utils.security import hash_password
+
 
 class Application(tk.Tk):
     def __init__(self):
@@ -19,9 +21,53 @@ class Application(tk.Tk):
             self.destroy()
             return
 
+        # Initialize the database schema
+        self.initialize_database()
+
+        # Setup default admin
+        self.setup_default_admin()
+
         # Initialize the app with the login screen
         self.current_frame = None
         self.show_login_screen()
+
+    def initialize_database(self):
+        """
+        Initializes the database schema by creating tables if they don't exist.
+        """
+        try:
+            initialize_database(self.db)
+            print("Database schema initialized successfully.")
+        except Exception as e:
+            print(f"Error initializing database schema: {e}")
+            self.destroy()
+
+    def setup_default_admin(self):
+        """
+        Creates a default admin user if no users exist in the database.
+        """
+        try:
+            query = "SELECT COUNT(*) AS user_count FROM Users"
+            self.db.execute_query(query)
+            result = self.db.cursor.fetchone()
+            user_count = result["user_count"]  # Access the dictionary key
+
+            if user_count == 0:
+                username = "admin"
+                password = "admin123"
+                hashed_password = hash_password(password)
+
+                insert_query = """
+                    INSERT INTO Users (username, password_hash, role)
+                    VALUES (%s, %s, %s)
+                """
+                self.db.execute_query(insert_query, (username, hashed_password, "admin"))
+                print(f"Default admin user created:\nUsername: {username}\nPassword: {password}")
+            else:
+                print("Admin user already exists. Skipping admin creation.")
+        except Exception as e:
+            print(f"Error setting up default admin: {e}")
+            self.destroy()
 
     def show_login_screen(self):
         """Displays the login screen."""
@@ -47,33 +93,10 @@ class Application(tk.Tk):
             self.db.close()
         self.destroy()
 
-def setup_default_admin(db):
-    """
-    Creates a default admin user if no users exist in the database.
-    """
-    query = "SELECT COUNT(*) AS user_count FROM Users"
-    db.execute_query(query)
-    result = db.cursor.fetchone()
-    user_count = result["user_count"]  # Access the dictionary key
-
-    if user_count == 0:
-        username = "admin"
-        password = "admin123"
-        hashed_password = hash_password(password)
-
-        insert_query = """
-            INSERT INTO Users (username, password_hash, role)
-            VALUES (%s, %s, %s)
-        """
-        db.execute_query(insert_query, (username, hashed_password, "admin"))
-        print(f"Default admin user created:\nUsername: {username}\nPassword: {password}")
 
 if __name__ == "__main__":
     # Initialize the application
     app = Application()
-
-    # Create default admin if necessary
-    setup_default_admin(app.db)
 
     # Handle cleanup on close
     app.protocol("WM_DELETE_WINDOW", app.on_close)
