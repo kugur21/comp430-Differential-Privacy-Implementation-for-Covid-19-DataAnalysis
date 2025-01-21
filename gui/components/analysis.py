@@ -5,7 +5,8 @@ from privacy.differential_privacy import apply_differential_privacy
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
-
+from decimal import Decimal
+from collections import Counter
 
 class AnalysisView(ttk.Frame):
     def __init__(self, parent, db_connection):
@@ -46,7 +47,11 @@ class AnalysisView(ttk.Frame):
             "Time Series Analysis",
             "COVID Trends",
             "Disease Priority Analysis",    # <-- NoisyMax adlı analizi bu şekilde yeniden adlandırdık
-            "Disease Weighted Selection"    # <-- Exponential Analysis için yeni başlık
+            "Disease Weighted Selection",    # <-- Exponential Analysis için yeni başlık
+            "Recovery Rate Analysis", 
+            "Mortality Rate by Age Group",
+            "Most Affected Age",
+            "High Risk Survivor"
         ]
         self.analysis_var = ttk.StringVar(value=self.analysis_options[0])
 
@@ -199,6 +204,16 @@ class AnalysisView(ttk.Frame):
                 result = self.perform_disease_priority_analysis()
             elif selected_analysis == "Disease Weighted Selection":
                 result = self.perform_top_death_dates_exponential()
+
+            elif selected_analysis == "Recovery Rate Analysis":
+                result = self.perform_recovery_rate_analysis()
+            elif selected_analysis == "Mortality Rate by Age Group":
+                result = self.perform_mortality_rate_by_age_group()
+            elif selected_analysis == "Most Affected Age":
+                result = self.perform_most_affected_age_group()
+            elif selected_analysis == "High Risk Survivor":
+                result = self.perform_high_risk_survivors()
+                
             else:
                 result = "Invalid Analysis Selected"
 
@@ -590,3 +605,239 @@ class AnalysisView(ttk.Frame):
             f"Exponential mechanism chose date '{chosen_date}' among the top 10 death dates.\n"
             "Note: X-axis numeric scale is hidden."
         )
+
+
+
+    def perform_recovery_rate_analysis(self):
+        query = """
+        SELECT 
+            COUNT(*) AS total_cases,
+            SUM(CASE WHEN date_died IS NULL THEN 1 ELSE 0 END) AS recovered_cases
+        FROM Patients;
+        """
+        self.db_connection.execute_query(query)
+        result = self.db_connection.cursor.fetchone()
+
+        if not result:
+            return "No data available for recovery analysis."
+
+        total_cases = float(result['total_cases'])
+        recovered_cases = float(result['recovered_cases'])
+
+        print(f"SQL Query - Total Cases: {total_cases}, Recovered Cases: {recovered_cases}")
+
+        if total_cases == 0:
+            return "Total cases is zero, cannot calculate recovery rate."
+
+        noise_total = np.random.normal(0, 50)  #higher noise to test impact
+        noise_recovered = np.random.normal(0, 50)
+
+        dp_total_cases = max(apply_differential_privacy([total_cases], mechanism="Gaussian", epsilon=self.epsilon, sensitivity=1)[0] + noise_total, 0)
+        dp_recovered_cases = max(apply_differential_privacy([recovered_cases], mechanism="Gaussian", epsilon=self.epsilon, sensitivity=1)[0] + noise_recovered, 0)
+
+        print(f"DP - Total Cases: {dp_total_cases}, Recovered Cases: {dp_recovered_cases}")
+
+        #noise might lead to zero values
+        if dp_total_cases < 1:
+            print("DP total cases after noise is too low, setting to 1 to avoid division by zero.")
+            dp_total_cases = 1
+
+        # Calculation of Recovery Rate
+        recovery_rate = (dp_recovered_cases / dp_total_cases) * 100
+        print(f"Calculated Recovery Rate: {recovery_rate:.2f}%")
+        values = [dp_recovered_cases, dp_total_cases - dp_recovered_cases]
+        labels = ['Recovered', 'Not Recovered']
+
+        plt.clf()
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=90, colors=['#2ecc71', '#e74c3c'])
+        ax.set_title(f"Recovery Rate (ε={self.epsilon:.2f})")
+
+        self.display_graph(fig)
+
+        return f"Recovery Rate (ε={self.epsilon:.2f}): {recovery_rate:.2f}%"
+
+
+
+    def perform_mortality_rate_by_age_group(self):
+        query = """
+            SELECT FLOOR(age / 10) * 10 AS age_group, 
+                COUNT(*) AS total_cases,
+                SUM(CASE WHEN date_died IS NOT NULL THEN 1 ELSE 0 END) AS deaths
+            FROM Patients
+            GROUP BY age_group
+            ORDER BY age_group;
+        """
+        self.db_connection.execute_query(query)
+        results = self.db_connection.cursor.fetchall()
+
+        if not results:
+            return "No data available for mortality rate analysis."
+
+        # decimal to float for numerical operations
+        age_groups = {str(row["age_group"]) + "-" + str(row["age_group"] + 9): float(row["total_cases"]) for row in results}
+        deaths = {str(row["age_group"]) + "-" + str(row["age_group"] + 9): float(row["deaths"]) for row in results}
+
+        dp_total_cases = {group: apply_differential_privacy([count], mechanism="Gaussian", epsilon=self.epsilon, sensitivity=1)[0]
+        for group, count in age_groups.items()}
+
+        dp_deaths = {group: apply_differential_privacy([count], mechanism="Laplace", epsilon=self.epsilon, sensitivity=1)[0]
+        for group, count in deaths.items()}
+
+        # computation of mortality rates safely
+        mortality_rates = {group: (dp_deaths[group] / dp_total_cases[group] * 100) if dp_total_cases[group] > 0 else 0
+            for group in age_groups}
+
+        # Clear previous plot before drawing a new one
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.clear()
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.bar(mortality_rates.keys(), mortality_rates.values(), color="#e74c3c", edgecolor="black")
+        ax.set_title(f"Mortality Rate by Age Group (ε={self.epsilon:.2f})")
+        ax.set_xlabel("Age Group")
+        ax.set_ylabel("Mortality Rate (%)")
+        ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+        self.display_graph(fig)
+        return mortality_rates
+
+
+
+###iki gün önce çalışan bu kısım şimdi sürekli aynı sonucu veriyor tekrar bakmaya çalışm ondan atamadım
+
+    def perform_most_affected_age_group(self):
+        query = """
+            SELECT FLOOR(age / 10) * 10 AS age_group, 
+                COUNT(*) AS total_cases
+            FROM Patients
+            WHERE date_died IS NOT NULL
+            GROUP BY age_group
+            ORDER BY age_group
+        """
+        self.db_connection.execute_query(query)
+        results = self.db_connection.cursor.fetchall()
+
+        if not results:
+            return "No data available for mortality analysis."
+
+        age_groups = {str(row["age_group"]) + "-" + str(row["age_group"] + 9): float(row["total_cases"]) for row in results}
+
+        most_affected_group_index = apply_differential_privacy(
+            data=list(age_groups.values()),
+            mechanism="ReportNoisyMax",
+            epsilon=self.epsilon,
+            sensitivity=1
+        )
+
+        most_affected_group = list(age_groups.keys())[most_affected_group_index]
+
+
+        age_labels = list(age_groups.keys())
+        affected_counts = list(age_groups.values())
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        bars = ax.barh(age_labels, affected_counts, color='#3498db', edgecolor='black')
+
+        ax.set_title(f"Most Affected Age Groups (ε={self.epsilon:.2f})", fontsize=14, pad=15, fontweight='bold')
+        ax.set_ylabel("Age Groups", fontsize=12)
+        
+
+        ax.set_xlabel("")
+        ax.set_xticklabels([])
+        ax.set_xticks([])
+        ax.grid(axis='y', linestyle='--', alpha=0.3)
+        
+        for i, lbl in enumerate(age_labels):
+            if lbl == most_affected_group:
+                bars[i].set_color('#e74c3c')
+                ax.annotate(
+                    "Selected",
+                    xy=(affected_counts[i], i),
+                    xytext=(5, 0),
+                    textcoords="offset points",
+                    va='center',
+                    color='white',
+                    fontweight='bold'
+                )
+
+        self.display_graph(fig)
+
+        return f"The most affected age group is {most_affected_group} years."
+
+
+
+
+    def perform_high_risk_survivors(self):
+        query = """
+            SELECT patient_id, age, diabetes, obesity, hipertension, intubed, icu
+            FROM Patients
+            WHERE (diabetes + obesity + hipertension) >= 2
+            AND (intubed = 1 OR icu = 1)
+            AND date_died IS NULL;
+        """
+
+
+        self.db_connection.execute_query(query)
+        results = self.db_connection.cursor.fetchall()
+
+        if not results:
+            return "No high-risk survivor data available."
+
+        ages = [row["age"] for row in results]
+        
+        dp_survivors_count = apply_differential_privacy(
+            [len(results)], 
+            mechanism="Laplace", 
+            epsilon=self.epsilon, 
+            sensitivity=1)[0]
+
+
+        selected_age = apply_differential_privacy(
+            data=ages, 
+            mechanism="Exponential", 
+            epsilon=self.epsilon, 
+            utility=ages, 
+            sensitivity=1)
+
+        age_groups = {f"{age//10*10}-{age//10*10+9}": 0 for age in ages}
+        for age in ages:
+            age_group = f"{age//10*10}-{age//10*10+9}"
+            age_groups[age_group] += 1
+
+        group_labels = list(age_groups.keys())
+        survivor_counts = list(age_groups.values())
+
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        bars = ax.barh(group_labels, survivor_counts, color='#3498db', edgecolor='black')
+        ax.set_title(f"High-Risk Survivors by Age Group (ε={self.epsilon:.2f})", fontsize=14, pad=15, fontweight='bold')
+        ax.set_ylabel("Age Groups", fontsize=12)
+
+        ax.set_xlabel("")
+        ax.set_xticklabels([])
+        ax.set_xticks([])
+
+        ax.grid(axis='y', linestyle='--', alpha=0.3)
+
+        # highlight most affected age group
+        most_affected_group = f"{selected_age//10*10}-{selected_age//10*10+9}"
+        for i, lbl in enumerate(group_labels):
+            if lbl == most_affected_group:
+                bars[i].set_color('#e74c3c')
+                ax.annotate(
+                    "Selected",
+                    xy=(survivor_counts[i], i),
+                    xytext=(5, 0),
+                    textcoords="offset points",
+                    va='center',
+                    color='white',
+                    fontweight='bold'
+                )
+
+        self.display_graph(fig)
+
+        return {
+            "Total High-Risk Survivors (DP)": dp_survivors_count,
+            "DP Selected Age Group": most_affected_group
+        }
