@@ -69,7 +69,7 @@ def load_dataset(file_path, db_connection):
 
 if __name__ == "__main__":
     # Path to the dataset
-    file_path = "/mnt/data/reducedCovidData (2).csv"
+    file_path = "/mnt/data/reducedCovidData.csv"
 
     # Initialize database connection
     db = DatabaseConnection()
