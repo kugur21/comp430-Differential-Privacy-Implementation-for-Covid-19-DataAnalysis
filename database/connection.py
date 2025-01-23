@@ -1,6 +1,6 @@
 import mysql.connector
 from mysql.connector import Error, pooling
-from config import DB_CONFIG
+from config.settings import DB_CONFIG
 import logging
 
 logger = logging.getLogger(__name__)
