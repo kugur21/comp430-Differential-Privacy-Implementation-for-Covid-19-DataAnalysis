@@ -1,3 +1,4 @@
+import sys
 from tkinter import messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
@@ -5,6 +6,9 @@ from ttkbootstrap.constants import *
 from gui.components.analysis import AnalysisView
 from gui.components.data_view import DataView
 from gui.components.upload_view import UploadView
+from gui.components.welcome import WelcomeTab
+from gui.login import LoginScreen
+
 
 
 class MainWindow(ttk.Frame):
@@ -62,6 +66,9 @@ class MainWindow(ttk.Frame):
         """
         if self.user_info["role"] in ["admin", "viewer"]:
 
+            # Add welcome tab
+            welcome_tab = WelcomeTab(notebook)
+            notebook.add(welcome_tab, text="Welcome")
 
             # Add data analysis tab
             analysis_tab = AnalysisView(notebook, self.db_connection)
@@ -90,7 +97,7 @@ class MainWindow(ttk.Frame):
 
     def logout(self):
         """
-        Handles the logout logic by destroying the main window and displaying a confirmation message.
+        Handles the logout logic by destroying the main window.
         """
         self.destroy()
-        messagebox.showinfo("Logged Out", "You have been logged out successfully.")
+        sys.exit(0)
