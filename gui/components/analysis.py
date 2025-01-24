@@ -871,9 +871,8 @@ class AnalysisView(ttk.Frame):
         """
         En çok kişinin öldüğü 10 tarihi bulur, Exponential mekanizmasıyla
         hangi tarihin 'seçilmiş' olduğunu rastgele belirler.
-        X ekseninde sayısal değerler gizlenir (ölçek görünmez).
+        Sadece seçilen tarihin gürültülü ölüm sayısını gösteren bir grafik oluşturur.
         """
-
         # 1) En çok ölüm (count) yaşanan 10 tarihi sorguluyoruz
         query = """
         SELECT 
@@ -915,44 +914,33 @@ class AnalysisView(ttk.Frame):
             query=query
         )
 
-        # 4) Yatay bar chart oluşturma
-        fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
-        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+        # 4) Seçilen tarihin gürültülü ölüm sayısını hesapla
+        chosen_index = date_labels.index(chosen_date)
+        noisy_count = apply_differential_privacy(
+            self.db_connection,
+            [died_counts[chosen_index]],
+            mechanism="Laplace",
+            epsilon=self.epsilon,
+            query=query
+        )[0]
 
-        # Plot the data with a modern color palette
-        colors = plt.cm.viridis(np.linspace(0, 1, len(date_labels)))
-        bars = ax.barh(date_labels, died_counts, color=colors, edgecolor='black')
+        # 5) Sadece seçilen tarihi gösteren grafik oluşturma
+        fig, ax = plt.subplots(figsize=(8, 2))  # Daha küçük bir grafik boyutu
+        plt.style.use('ggplot')  # Modern grafik stili
+
+        # Sadece seçilen tarihi göster
+        ax.barh([chosen_date], [noisy_count], color='#e74c3c', edgecolor='black')
 
         # Set titles and labels with improved font sizes
-        ax.set_title(f"Top 10 Death Dates (Exponential) (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax.set_title(f"Selected Death Date (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax.set_xlabel("Noisy Death Count", fontsize=12, color='white')
         ax.set_ylabel("Date Died", fontsize=12, color='white')
 
-        # --- SAYISAL EKSENİ GİZLEME ---
-        ax.set_xlabel("")  # x ekseni etiketini boş yap
-        ax.set_xticklabels([])  # x ekseni üzerindeki yazıları gizle
-        ax.set_xticks([])  # x ekseni üzerindeki çizgileri kaldır
-
-        # Çizgiler (grid) de istenmiyorsa:
-        # ax.grid(False)  # tüm ızgarayı kapatabilir
-        # veya sadece x ekseni gridini kapatmak için:
-        ax.grid(axis='y', linestyle='--', alpha=0.3)  # sadece yatay çizgiler kalsın
-
-        # Seçilen tarihi kırmızıya boyayalım
-        for i, lbl in enumerate(date_labels):
-            if lbl == chosen_date:
-                bars[i].set_color('#e74c3c')
-                # Dilerseniz açıklama da koyabilirsiniz:
-                ax.annotate(
-                    "Selected",
-                    xy=(died_counts[i], i),
-                    xytext=(5, 0),
-                    textcoords="offset points",
-                    va='center',
-                    color='white',
-                    fontweight='bold'
-                )
+        # Improve grid lines
+        ax.grid(axis='x', linestyle='--', alpha=0.7)
 
         # Set the color of the tick labels
+        ax.tick_params(axis='x', colors='white')
         ax.tick_params(axis='y', colors='white')
 
         # Set the background color of the plot
@@ -962,14 +950,14 @@ class AnalysisView(ttk.Frame):
         # Adjust layout to prevent overlap
         plt.tight_layout()
 
+        # Display the graph
         self.display_graph(fig)
 
-        # 5) Metinsel çıktı
+        # 6) Metinsel çıktı
         return (
-            f"Exponential mechanism chose date '{chosen_date}' among the top 10 death dates.\n"
-            "Note: X-axis numeric scale is hidden."
+            f"Exponential mechanism chose date '{chosen_date}' with a noisy death count of {noisy_count:.2f}.\n"
+            "Note: Only the selected date is displayed with differential privacy."
         )
-
     def perform_recovery_rate_analysis(self):
         query = """
         SELECT 
