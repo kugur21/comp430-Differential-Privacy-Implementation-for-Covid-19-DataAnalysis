@@ -5,11 +5,10 @@ from ttkbootstrap.constants import *
 
 from gui.components.analysis import AnalysisView
 from gui.components.data_view import DataView
+from gui.components.dynamicAnalysis import DynamicAnalysisView
 from gui.components.upload_view import UploadView
 from gui.components.welcome import WelcomeTab
 from gui.login import LoginScreen
-
-
 
 class MainWindow(ttk.Frame):
     """
@@ -65,7 +64,6 @@ class MainWindow(ttk.Frame):
         :param notebook: The ttk.Notebook widget where tabs are added.
         """
         if self.user_info["role"] in ["admin", "viewer"]:
-
             # Add welcome tab
             welcome_tab = WelcomeTab(notebook)
             notebook.add(welcome_tab, text="Welcome")
@@ -73,6 +71,10 @@ class MainWindow(ttk.Frame):
             # Add data analysis tab
             analysis_tab = AnalysisView(notebook, self.db_connection)
             notebook.add(analysis_tab, text="Data Analysis")
+
+            # Add dynamic analysis tab
+            dynamic_analysis_tab = DynamicAnalysisView(notebook, self.db_connection)
+            notebook.add(dynamic_analysis_tab, text="Dynamic Analysis")
 
         if self.user_info["role"] == "admin":
             # Add data upload tab for admin users
