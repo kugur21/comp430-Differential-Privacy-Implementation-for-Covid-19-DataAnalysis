@@ -167,6 +167,7 @@ class AnalysisView(ttk.Frame):
             bootstyle="secondary"
         )
         self.status_label.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+
     def _update_epsilon_label(self, event=None):
         """Callback to update the epsilon label whenever the slider moves."""
         self.epsilon_value_label.config(text=str(self.epsilon_var.get()))
@@ -272,10 +273,11 @@ class AnalysisView(ttk.Frame):
         # Apply differential privacy to each age group count
         dp_results = {
             group: apply_differential_privacy(
+                self.db_connection,  # DB bağlantısını iletiyoruz
                 [count],
                 mechanism="Gaussian",
                 epsilon=self.epsilon,
-                sensitivity=1
+                query=query  # Sensitivity otomatik olarak hesaplanır
             )[0]
             for group, count in age_groups.items()
         }
@@ -350,14 +352,26 @@ class AnalysisView(ttk.Frame):
 
         # Apply differential privacy to all counts
         dp_total_icu_patients = \
-        apply_differential_privacy([total_icu_patients], mechanism="Laplace", epsilon=self.epsilon)[0]
-        dp_avg_age = apply_differential_privacy([avg_age], mechanism="Laplace", epsilon=self.epsilon)[0]
-        dp_male_count = apply_differential_privacy([male_count], mechanism="Laplace", epsilon=self.epsilon)[0]
-        dp_female_count = apply_differential_privacy([female_count], mechanism="Laplace", epsilon=self.epsilon)[0]
-        dp_diabetes_count = apply_differential_privacy([diabetes_count], mechanism="Laplace", epsilon=self.epsilon)[0]
+            apply_differential_privacy(self.db_connection, [total_icu_patients], mechanism="Laplace",
+                                       epsilon=self.epsilon, query=query)[0]
+        dp_avg_age = \
+        apply_differential_privacy(self.db_connection, [avg_age], mechanism="Laplace", epsilon=self.epsilon,
+                                   query=query)[0]
+        dp_male_count = \
+        apply_differential_privacy(self.db_connection, [male_count], mechanism="Laplace", epsilon=self.epsilon,
+                                   query=query)[0]
+        dp_female_count = \
+        apply_differential_privacy(self.db_connection, [female_count], mechanism="Laplace", epsilon=self.epsilon,
+                                   query=query)[0]
+        dp_diabetes_count = \
+        apply_differential_privacy(self.db_connection, [diabetes_count], mechanism="Laplace", epsilon=self.epsilon,
+                                   query=query)[0]
         dp_hipertension_count = \
-        apply_differential_privacy([hipertension_count], mechanism="Laplace", epsilon=self.epsilon)[0]
-        dp_obesity_count = apply_differential_privacy([obesity_count], mechanism="Laplace", epsilon=self.epsilon)[0]
+            apply_differential_privacy(self.db_connection, [hipertension_count], mechanism="Laplace",
+                                       epsilon=self.epsilon, query=query)[0]
+        dp_obesity_count = \
+        apply_differential_privacy(self.db_connection, [obesity_count], mechanism="Laplace", epsilon=self.epsilon,
+                                   query=query)[0]
 
         # Prepare data for visualization
         gender_labels = ['Male', 'Female']
@@ -424,7 +438,8 @@ class AnalysisView(ttk.Frame):
 
         dp_results = {
             f"Diabetes: {row['diabetes']}, Hypertension: {row['hipertension']}":
-                apply_differential_privacy([row['count']], mechanism="Laplace", epsilon=self.epsilon)[0]
+                apply_differential_privacy(self.db_connection, [row['count']], mechanism="Laplace",
+                                           epsilon=self.epsilon, query=query)[0]
             for row in results
         }
 
@@ -492,16 +507,18 @@ class AnalysisView(ttk.Frame):
         dp_genders = {
             k: {
                 "total": apply_differential_privacy(
+                    self.db_connection,
                     [v["total"]],
                     mechanism="Gaussian",
                     epsilon=self.epsilon,
-                    sensitivity=1
+                    query=query
                 )[0],
                 "icu_count": apply_differential_privacy(
+                    self.db_connection,
                     [v["icu_count"]],
                     mechanism="Gaussian",
                     epsilon=self.epsilon,
-                    sensitivity=1
+                    query=query
                 )[0]
             }
             for k, v in genders.items()
@@ -518,10 +535,12 @@ class AnalysisView(ttk.Frame):
 
         colors = plt.cm.viridis(np.linspace(0, 1, len(dp_genders)))
 
-        ax1.pie(total_values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors, textprops={'color': 'white'})
+        ax1.pie(total_values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors,
+                textprops={'color': 'white'})
         ax1.set_title(f"Total Patients by Gender (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
 
-        ax2.pie(icu_values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors, textprops={'color': 'white'})
+        ax2.pie(icu_values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors,
+                textprops={'color': 'white'})
         ax2.set_title(f"ICU Patients by Gender (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
 
         # Set the background color of the plot
@@ -559,7 +578,8 @@ class AnalysisView(ttk.Frame):
         # Apply differential privacy to the counts
         dp_results = {
             usmer_mapping[row['usmer']]:
-                apply_differential_privacy([row['count']], mechanism="Laplace", epsilon=self.epsilon)[0]
+                apply_differential_privacy(self.db_connection, [row['count']], mechanism="Laplace",
+                                           epsilon=self.epsilon, query=query)[0]
             for row in results
         }
 
@@ -600,6 +620,7 @@ class AnalysisView(ttk.Frame):
         for region, count in dp_results.items():
             result_str += f"{region}: {count:.2f}\n"
         return result_str
+
     def perform_time_series_analysis(self):
         query = """
         SELECT date_died, COUNT(*) AS deaths 
@@ -616,7 +637,8 @@ class AnalysisView(ttk.Frame):
 
         dp_results = {
             row['date_died']:
-                apply_differential_privacy([row['deaths']], mechanism="Gaussian", epsilon=self.epsilon)[0]
+                apply_differential_privacy(self.db_connection, [row['deaths']], mechanism="Gaussian",
+                                           epsilon=self.epsilon, query=query)[0]
             for row in results
         }
 
@@ -685,9 +707,11 @@ class AnalysisView(ttk.Frame):
                     cases = row['weekly_cases']
                     if week and cases is not None:  # Ensure we have valid data
                         dp_results[week] = apply_differential_privacy(
+                            self.db_connection,
                             [cases],
                             mechanism="Gaussian",
-                            epsilon=self.epsilon
+                            epsilon=self.epsilon,
+                            query=query
                         )[0]
 
             if not dp_results:
@@ -697,7 +721,7 @@ class AnalysisView(ttk.Frame):
             cases = list(dp_results.values())
 
             fig, ax = plt.subplots(figsize=(10, 5))  # Adjust figure size
-            plt.style.use('ggplot') 
+            plt.style.use('ggplot')
 
             # Plot the data with a modern color palette
             if len(weeks) > 1:
@@ -718,7 +742,7 @@ class AnalysisView(ttk.Frame):
                     cases,
                     color='#2ecc71',
                     s=150,  # Increase the dot size for better visibility
-                  
+
                 )
                 ax.annotate(f"{cases[0]:.2f}",
                             (weeks[0], cases[0]),
@@ -795,10 +819,12 @@ class AnalysisView(ttk.Frame):
 
         # 'ReportNoisyMax' mekanizması sadece EN BÜYÜK değerin indeksini döndürür
         idx = apply_differential_privacy(
+            self.db_connection,
             data,
             mechanism="ReportNoisyMax",
             epsilon=self.epsilon,
-            sensitivity=1  # sayım sorgusu için
+            sensitivity=1,  # sayım sorgusu için
+            query=query
         )
 
         chosen_label = labels[idx]
@@ -876,11 +902,13 @@ class AnalysisView(ttk.Frame):
 
         # 3) Exponential mekanizması
         chosen_date = apply_differential_privacy(
+            self.db_connection,
             data=date_labels,
             mechanism="Exponential",
             epsilon=self.epsilon,
             utility=died_counts,
-            sensitivity=1
+            sensitivity=1,
+            query=query
         )
 
         # 4) Yatay bar chart oluşturma
@@ -959,15 +987,19 @@ class AnalysisView(ttk.Frame):
         if total_cases == 0:
             return "Total cases is zero, cannot calculate recovery rate."
 
-        noise_total = np.random.normal(0, 50)  #higher noise to test impact
+        noise_total = np.random.normal(0, 50)  # higher noise to test impact
         noise_recovered = np.random.normal(0, 50)
 
-        dp_total_cases = max(apply_differential_privacy([total_cases], mechanism="Gaussian", epsilon=self.epsilon, sensitivity=1)[0] + noise_total, 0)
-        dp_recovered_cases = max(apply_differential_privacy([recovered_cases], mechanism="Gaussian", epsilon=self.epsilon, sensitivity=1)[0] + noise_recovered, 0)
+        dp_total_cases = max(
+            apply_differential_privacy(self.db_connection, [total_cases], mechanism="Gaussian", epsilon=self.epsilon,
+                                       sensitivity=1, query=query)[0] + noise_total, 0)
+        dp_recovered_cases = max(apply_differential_privacy(self.db_connection, [recovered_cases], mechanism="Gaussian",
+                                                            epsilon=self.epsilon, sensitivity=1, query=query)[
+                                     0] + noise_recovered, 0)
 
         print(f"DP - Total Cases: {dp_total_cases}, Recovered Cases: {dp_recovered_cases}")
 
-        #noise might lead to zero values
+        # noise might lead to zero values
         if dp_total_cases < 1:
             print("DP total cases after noise is too low, setting to 1 to avoid division by zero.")
             dp_total_cases = 1
@@ -1020,12 +1052,14 @@ class AnalysisView(ttk.Frame):
         deaths = {f"{row['age_group']}-{row['age_group'] + 9}": float(row['deaths']) for row in results}
 
         dp_total_cases = {
-            group: apply_differential_privacy([count], mechanism="Gaussian", epsilon=self.epsilon, sensitivity=1)[0]
+            group: apply_differential_privacy(self.db_connection, [count], mechanism="Gaussian", epsilon=self.epsilon,
+                                              sensitivity=1, query=query)[0]
             for group, count in age_groups.items()
         }
 
         dp_deaths = {
-            group: apply_differential_privacy([count], mechanism="Laplace", epsilon=self.epsilon, sensitivity=1)[0]
+            group: apply_differential_privacy(self.db_connection, [count], mechanism="Laplace", epsilon=self.epsilon,
+                                              sensitivity=1, query=query)[0]
             for group, count in deaths.items()
         }
 
@@ -1093,14 +1127,17 @@ class AnalysisView(ttk.Frame):
             return "No data available for mortality analysis."
 
         # Convert data to appropriate types
-        age_groups = {str(row["age_group"]) + "-" + str(row["age_group"] + 9): float(row["total_cases"]) for row in results}
+        age_groups = {str(row["age_group"]) + "-" + str(row["age_group"] + 9): float(row["total_cases"]) for row in
+                      results}
 
         # Apply Report Noisy Max to find the most affected age group
         most_affected_group_index = apply_differential_privacy(
+            self.db_connection,
             data=list(age_groups.values()),
             mechanism="ReportNoisyMax",
             epsilon=self.epsilon,
-            sensitivity=1
+            sensitivity=1,
+            query=query
         )
 
         most_affected_group = list(age_groups.keys())[most_affected_group_index]
@@ -1115,7 +1152,7 @@ class AnalysisView(ttk.Frame):
 
         ax.set_title(f"Most Affected Age Groups (ε={self.epsilon:.2f})", fontsize=14, pad=15, fontweight='bold')
         ax.set_ylabel("Age Groups", fontsize=12)
-        
+
         # Hide X-axis labels for a cleaner look
         ax.set_xlabel("")
         ax.set_xticklabels([])
@@ -1142,10 +1179,6 @@ class AnalysisView(ttk.Frame):
 
         return f"The most affected age group is {most_affected_group} years."
 
-
-
-
-
     def perform_high_risk_survivors(self):
         query = """
             SELECT patient_id, age, diabetes, obesity, hipertension, intubed, icu
@@ -1154,7 +1187,6 @@ class AnalysisView(ttk.Frame):
             AND (intubed = 1 OR icu = 1)
             AND date_died IS NULL;
         """
-
 
         self.db_connection.execute_query(query)
         results = self.db_connection.cursor.fetchall()
@@ -1165,27 +1197,31 @@ class AnalysisView(ttk.Frame):
         ages = [row["age"] for row in results]
 
         dp_survivors_count = apply_differential_privacy(
+            self.db_connection,
             [len(results)],
             mechanism="Laplace",
             epsilon=self.epsilon,
-            sensitivity=1)[0]
-
+            sensitivity=1,
+            query=query
+        )[0]
 
         selected_age = apply_differential_privacy(
+            self.db_connection,
             data=ages,
             mechanism="Exponential",
             epsilon=self.epsilon,
             utility=ages,
-            sensitivity=1)
+            sensitivity=1,
+            query=query
+        )
 
-        age_groups = {f"{age//10*10}-{age//10*10+9}": 0 for age in ages}
+        age_groups = {f"{age // 10 * 10}-{age // 10 * 10 + 9}": 0 for age in ages}
         for age in ages:
-            age_group = f"{age//10*10}-{age//10*10+9}"
+            age_group = f"{age // 10 * 10}-{age // 10 * 10 + 9}"
             age_groups[age_group] += 1
 
         group_labels = list(age_groups.keys())
         survivor_counts = list(age_groups.values())
-
 
         fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
         plt.style.use('ggplot')  # Use seaborn style for better aesthetics
@@ -1209,7 +1245,7 @@ class AnalysisView(ttk.Frame):
         ax.grid(axis='y', linestyle='--', alpha=0.3)  # sadece yatay çizgiler kalsın
 
         # highlight most affected age group
-        most_affected_group = f"{selected_age//10*10}-{selected_age//10*10+9}"
+        most_affected_group = f"{selected_age // 10 * 10}-{selected_age // 10 * 10 + 9}"
         for i, lbl in enumerate(group_labels):
             if lbl == most_affected_group:
                 bars[i].set_color('#e74c3c')
