@@ -270,7 +270,6 @@ class AnalysisView(ttk.Frame):
                       for row in results}
 
         # Apply differential privacy to each age group count
-        delta = 1e-5  # Required for Gaussian mechanism
         dp_results = {
             group: apply_differential_privacy(
                 [count],
@@ -316,6 +315,7 @@ class AnalysisView(ttk.Frame):
         query = """
         SELECT COUNT(*) AS count, diabetes, hipertension 
         FROM Patients 
+        WHERE diabetes IN (1, 2) AND hipertension IN (1, 2)  
         GROUP BY diabetes, hipertension
         """
         self.db_connection.execute_query(query)
@@ -345,22 +345,60 @@ class AnalysisView(ttk.Frame):
         return dp_results
 
     def perform_gender_based_analysis(self):
-        # Example static data
-        genders = {1: {"total": 4922, "icu_count": 133}, 2: {"total": 5077, "icu_count": 232}}
+        """
+        Fetches gender-based patient and ICU statistics from the database,
+        applies differential privacy, and visualizes the results.
+        """
+        # SQL query to get total patients and ICU patients by gender
+        query = """
+        SELECT 
+            sex AS gender,
+            COUNT(*) AS total,
+            SUM(CASE WHEN icu = 1 THEN 1 ELSE 0 END) AS icu_count
+        FROM Patients
+        WHERE sex IN (1, 2)  -- Filter out missing values (e.g., 97, 99)
+        GROUP BY sex;
+        """
+        self.db_connection.execute_query(query)
+        results = self.db_connection.cursor.fetchall()
+
+        if not results:
+            return "No gender-based data available."
+
+        # Convert query results into a dictionary: {gender: {"total": count, "icu_count": count}}
+        genders = {
+            row["gender"]: {
+                "total": float(row["total"]),
+                "icu_count": float(row["icu_count"])
+            }
+            for row in results
+        }
 
         # Apply differential privacy to all values
         dp_genders = {
             k: {
-                "total": apply_differential_privacy([v["total"]], mechanism="Gaussian", epsilon=self.epsilon)[0],
-                "icu_count": apply_differential_privacy([v["icu_count"]], mechanism="Gaussian", epsilon=self.epsilon)[0]
+                "total": apply_differential_privacy(
+                    [v["total"]],
+                    mechanism="Gaussian",
+                    epsilon=self.epsilon,
+                    sensitivity=1
+                )[0],
+                "icu_count": apply_differential_privacy(
+                    [v["icu_count"]],
+                    mechanism="Gaussian",
+                    epsilon=self.epsilon,
+                    sensitivity=1
+                )[0]
             }
             for k, v in genders.items()
         }
 
+        # Prepare data for visualization
         labels = [f"Gender {k}" for k in dp_genders.keys()]
         total_values = [v["total"] for v in dp_genders.values()]
         icu_values = [v["icu_count"] for v in dp_genders.values()]
 
+        # Create pie charts
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
         colors = ['#2ecc71', '#e74c3c']
 
@@ -370,7 +408,10 @@ class AnalysisView(ttk.Frame):
         ax2.pie(icu_values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors)
         ax2.set_title(f"ICU Patients by Gender (ε={self.epsilon:.2f})", pad=15)
 
+        # Display the graph
         self.display_graph(fig)
+
+        # Return the differentially private results
         return dp_genders
 
     def perform_regional_analysis(self):
@@ -715,8 +756,11 @@ class AnalysisView(ttk.Frame):
         for group, count in deaths.items()}
 
         # computation of mortality rates safely
-        mortality_rates = {group: (dp_deaths[group] / dp_total_cases[group] * 100) if dp_total_cases[group] > 0 else 0
-            for group in age_groups}
+        mortality_rates = {
+            group: (dp_deaths[group] / dp_total_cases[group] * 100)
+            if dp_total_cases[group] > 0 else 0
+            for group in age_groups
+        }
 
         # Clear previous plot before drawing a new one
         fig, ax = plt.subplots(figsize=(8, 5))
