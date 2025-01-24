@@ -120,6 +120,9 @@ class MainWindow(ttk.Frame):
         try:
             # Update the budget in the database
             new_budget = self.user_info["budget"] - epsilon
+            if new_budget < 0:
+                messagebox.showerror("Error", "Insufficient privacy budget.")
+                return False
             query = "UPDATE Users SET budget = %s WHERE username = %s"
             self.db_connection.execute_query(query, (new_budget, self.user_info["username"]))
 
@@ -129,8 +132,11 @@ class MainWindow(ttk.Frame):
             # Update the budget label in the UI
             self.privacy_budget_label.config(text=f"Privacy Budget: {new_budget} ε")
 
+            return True
+
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update privacy budget: {e}")
+            return False
 
     def logout(self):
         """
