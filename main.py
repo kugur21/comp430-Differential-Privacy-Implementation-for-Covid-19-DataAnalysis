@@ -5,6 +5,7 @@ from gui.main_window import MainWindow
 from database.connection import DatabaseConnection
 from database.initializer import initialize_database, load_data
 
+#project
 class Application(tk.Tk):
     def __init__(self):
         super().__init__()
