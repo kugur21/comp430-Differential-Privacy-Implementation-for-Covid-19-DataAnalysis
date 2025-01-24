@@ -684,11 +684,13 @@ class AnalysisView(ttk.Frame):
     def perform_covid_trends(self):
         try:
             query = """
-            SELECT DATE_FORMAT(created_at, '%Y-%u') AS week, COUNT(*) AS weekly_cases 
-            FROM Patients 
-            WHERE classification_final = 1 
-            GROUP BY week
-            ORDER BY week;
+
+
+        SELECT DATE_FORMAT(DATE_DIED, '%Y-%u') AS week, COUNT(*) AS weekly_cases 
+        FROM Patients 
+        WHERE classification_final = 1 
+        GROUP BY week
+        ORDER BY week;
             """
             # Execute query and check if successful
             if not self.db_connection.execute_query(query):
