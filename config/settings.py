@@ -16,7 +16,6 @@ DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'user': os.getenv('DB_USER', 'root'),
     'password': os.getenv('DB_PASSWORD', ''),
-    'database': os.getenv('DB_NAME', 'covid_data'),
     'port': int(os.getenv('DB_PORT', 3306)),
     'raise_on_warnings': True,
     'connection_timeout': int(os.getenv('DB_TIMEOUT', 10)),

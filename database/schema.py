@@ -5,8 +5,8 @@ CREATE_TABLES_QUERIES = {
             username VARCHAR(50) UNIQUE NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
             role ENUM('admin', 'viewer') NOT NULL,
-            budget INT DEFAULT 100,
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            budget INT DEFAULT 100
+        ); 
     """,
 
     'patients': """
@@ -32,7 +32,7 @@ CREATE_TABLES_QUERIES = {
             renal_chronic INT,
             tobacco INT,
             classification_final INT,
-            icu INT,
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            icu INT
+        );
     """,
 }

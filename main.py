@@ -3,9 +3,7 @@ from ttkbootstrap import Style
 from gui.login import LoginScreen
 from gui.main_window import MainWindow
 from database.connection import DatabaseConnection
-from database.initializer import initialize_database
-from utils.security import hash_password
-from load_dataset import load_dataset
+from database.initializer import initialize_database, load_data
 
 class Application(tk.Tk):
     def __init__(self):
@@ -23,11 +21,8 @@ class Application(tk.Tk):
 
         # Initialize the database schema
         self.initialize_database()
-        self.load_dataset()
-        self.load_users()
 
-        # Setup default admin
-        self.setup_default_admin()
+        self.load_account_and_covid_data()
 
         # Initialize the app with the login screen
         self.current_frame = None
@@ -44,57 +39,18 @@ class Application(tk.Tk):
             print(f"Error initializing database schema: {e}")
             self.destroy()
 
-    def setup_default_admin(self):
+
+    def load_account_and_covid_data(self):
         """
-        Creates a default admin user if no users exist in the database.
+        Loads the patient dataset into the database.
         """
         try:
-            query = "SELECT COUNT(*) AS user_count FROM Users"
-            self.db.execute_query(query)
-            result = self.db.cursor.fetchone()
-            user_count = result["user_count"]  # Access the dictionary key
+            covid_data_csv_path = "reducedCovidData.csv"
+            accounts_csv_path = "accounts.csv"
+            load_data(self.db, accounts_csv_path, covid_data_csv_path)
 
-            if user_count == 0:
-                username = "admin"
-                password = "admin123"
-                hashed_password = hash_password(password)
-
-                insert_query = """
-                    INSERT INTO Users (username, password_hash, role)
-                    VALUES (%s, %s, %s)
-                """
-                self.db.execute_query(insert_query, (username, hashed_password, "admin"))
-                print(f"Default admin user created:\nUsername: {username}\nPassword: {password}")
-            else:
-                print("Admin user already exists. Skipping admin creation.")
-        except Exception as e:
-            print(f"Error setting up default admin: {e}")
-            self.destroy()
-
-    def load_dataset(self):
-        """
-        Loads the dataset into the database.
-        """
-        try:
-            file_path = "data/reducedCovidData.csv"
-            load_dataset(file_path, self.db)
         except Exception as e:
             print(f"Error loading dataset: {e}")
-            self.destroy()
-
-    def load_users(self):
-        """
-        Loads the users from the database for debugging purposes.
-        """
-        try:
-            query = "SELECT * FROM Users"
-            self.db.execute_query(query)
-            users = self.db.cursor.fetchall()
-            print("Users:")
-            for user in users:
-                print(user)
-        except Exception as e:
-            print(f"Error loading users: {e}")
             self.destroy()
 
     def show_login_screen(self):

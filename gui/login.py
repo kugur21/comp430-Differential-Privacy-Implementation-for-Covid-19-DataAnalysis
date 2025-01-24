@@ -1,8 +1,6 @@
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
 from tkinter import messagebox
 import bcrypt
-import csv
 
 class LoginScreen(ttk.Frame):
     def __init__(self, parent, db_connection, on_login):
@@ -50,21 +48,21 @@ class LoginScreen(ttk.Frame):
             messagebox.showerror("Login Failed", "Both username and password are required.")
             return
 
-        # Validate against accounts.csv
         try:
-            with open("accounts.csv", mode="r") as csv_file:
-                reader = csv.DictReader(csv_file)
-                for row in reader:
-                    if row["username"] == username:
-                        # Verify the hashed password
-                        if bcrypt.checkpw(password.encode("utf-8"), row["hashed_password"].encode("utf-8")):
-                            # Successful login
-                            self.on_login({"username": username, "role": row["role"]})
-                            return
-                        else:
-                            messagebox.showerror("Login Failed", "Invalid password.")
-                            return
-                # If username is not found
-                messagebox.showerror("Login Failed", "Username not found.")
+            query = "SELECT username, password_hash, role, budget FROM Users WHERE username = %s"
+            params = (username,)
+
+            if self.db_connection.execute_query(query, params):
+                user_data = self.db_connection.fetchone()
+
+                if user_data:
+                    if bcrypt.checkpw(password.encode("utf-8"), user_data["password_hash"].encode("utf-8")):
+                        self.on_login({"username": user_data["username"], "role": user_data["role"], "budget": user_data["budget"]})
+                    else:
+                        messagebox.showerror("Login Failed", "Invalid password.")
+                else:
+                    messagebox.showerror("Login Failed", "Username not found.")
+            else:
+                messagebox.showerror("Error", "Failed to execute database query.")
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred: {e}")
