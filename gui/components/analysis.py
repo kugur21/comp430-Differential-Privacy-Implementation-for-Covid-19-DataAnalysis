@@ -21,6 +21,7 @@ class AnalysisView(ttk.Frame):
 
         # Set theme style
         self.style = ttk.Style()
+        self.style.theme_use('superhero')  # Modern tema seçimi
         self.setup_ui()
 
     def setup_ui(self):
@@ -125,7 +126,7 @@ class AnalysisView(ttk.Frame):
         content_frame = ttk.Frame(self)
         content_frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
         content_frame.grid_columnconfigure(0, weight=1)
-        content_frame.grid_columnconfigure(1, weight=1)
+        content_frame.grid_columnconfigure(1, weight=2)  # Increase weight for the visualization area
 
         # Results Panel
         results_frame = ttk.LabelFrame(
@@ -139,9 +140,9 @@ class AnalysisView(ttk.Frame):
         self.result_text = ScrolledText(
             results_frame,
             height=20,
-            width=60,
+            width=40,  # Reduce the width of the analysis result text box
             wrap="word",
-            font=("Helvetica", 11),
+            font=("Helvetica", 14),  # Increase the font size of the analysis result text
             autohide=True
         )
         self.result_text.pack(fill="both", expand=True)
@@ -155,7 +156,7 @@ class AnalysisView(ttk.Frame):
         )
         graph_frame.grid(row=0, column=1, padx=(10, 0), sticky="nsew")
 
-        self.graph_frame = ttk.Frame(graph_frame, width=600, height=400)
+        self.graph_frame = ttk.Frame(graph_frame, width=800, height=400)  # Increase the width of the visualization area
         self.graph_frame.pack(fill="both", expand=True)
 
         # Status Bar
@@ -166,7 +167,6 @@ class AnalysisView(ttk.Frame):
             bootstyle="secondary"
         )
         self.status_label.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(10, 0))
-
     def _update_epsilon_label(self, event=None):
         """Callback to update the epsilon label whenever the slider moves."""
         self.epsilon_value_label.config(text=str(self.epsilon_var.get()))
@@ -232,7 +232,7 @@ class AnalysisView(ttk.Frame):
             self.progress.pack_forget()
 
     def display_graph(self, fig):
-        plt.style.use('fivethirtyeight')
+        plt.style.use('ggplot')  # Modern grafik stili
         fig.patch.set_facecolor(self.style.colors.bg)
 
         canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
@@ -281,18 +281,43 @@ class AnalysisView(ttk.Frame):
         }
 
         # Plot the results
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.bar(dp_results.keys(), dp_results.values(), color='#3498db', edgecolor='black')
-        ax.set_title(f"Age Distribution (ε={self.epsilon:.2f})", fontsize=14, pad=15)
-        ax.set_xlabel("Age Groups", fontsize=12)
-        ax.set_ylabel("Noisy Count", fontsize=12)
+        fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+
+        # Plot the data with a modern color palette
+        colors = plt.cm.viridis(np.linspace(0, 1, len(dp_results)))
+        ax.bar(dp_results.keys(), dp_results.values(), color=colors, edgecolor='black')
+
+        # Set titles and labels with improved font sizes
+        ax.set_title(f"Age Distribution (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax.set_xlabel("Age Groups", fontsize=12, color='white')
+        ax.set_ylabel("Noisy Count", fontsize=12, color='white')
+
+        # Improve grid lines
         ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+        # Rotate x-axis labels for better readability
+        plt.xticks(rotation=45, ha='right', color='white')
+
+        # Set the color of the tick labels
+        ax.tick_params(axis='x', colors='white')
+        ax.tick_params(axis='y', colors='white')
+
+        # Set the background color of the plot
+        ax.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
+
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
 
         # Display the graph
         self.display_graph(fig)
 
-        # Return the differentially private results
-        return dp_results
+        # Return the differentially private results in a readable format
+        result_str = "Age Distribution Results:\n"
+        for age_group, count in dp_results.items():
+            result_str += f"{age_group}: {count:.2f}\n"
+        return result_str
 
     def perform_icu_statistics(self):
         query = "SELECT COUNT(*) AS icu_count FROM Patients WHERE icu = 1"
@@ -302,14 +327,32 @@ class AnalysisView(ttk.Frame):
 
         dp_result = apply_differential_privacy([icu_count], mechanism="Laplace", epsilon=self.epsilon)
 
-        fig, ax = plt.subplots(figsize=(6, 4))
-        ax.bar(["ICU Patients"], [dp_result[0]], color="#9b59b6", edgecolor="black")
-        ax.set_title(f"ICU Statistics (ε={self.epsilon:.2f})", fontsize=12, pad=15)
-        ax.set_ylabel("Noisy Count", fontsize=10)
+        fig, ax = plt.subplots(figsize=(6, 4))  # Adjusted figure size
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+
+        # Plot the data with a modern color palette
+        ax.bar(["ICU Patients"], [dp_result[0]], color='#3498db', edgecolor='black')
+
+        # Set titles and labels with improved font sizes
+        ax.set_title(f"ICU Statistics (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax.set_ylabel("Noisy Count", fontsize=12, color='white')
+
+        # Improve grid lines
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
+        # Set the color of the tick labels
+        ax.tick_params(axis='x', colors='white')
+        ax.tick_params(axis='y', colors='white')
+
+        # Set the background color of the plot
+        ax.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
+
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
+
         self.display_graph(fig)
-        return f"ICU Statistics (ε={self.epsilon:.2f}): {dp_result[0]}"
+        return f"ICU Statistics (ε={self.epsilon:.2f}): {dp_result[0]:.2f}"
 
     def perform_disease_correlation(self):
         query = """
@@ -331,22 +374,34 @@ class AnalysisView(ttk.Frame):
         }
 
         # Adjust figure size to fit the frame
-        fig, ax = plt.subplots(figsize=(4, 5))  # Smaller figure size
+        fig, ax = plt.subplots(figsize=(6, 5))  # Adjusted figure size
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+
+        # Plot the data with a modern color palette
         wedges, texts, autotexts = ax.pie(
             dp_results.values(),
             labels=dp_results.keys(),
             autopct='%1.1f%%',
             startangle=90,
-            colors=plt.cm.Pastel1(np.linspace(0, 1, len(dp_results))),
-            textprops={'fontsize': 8}  # Smaller text size
+            colors=plt.cm.viridis(np.linspace(0, 1, len(dp_results))),
+            textprops={'fontsize': 10, 'color': 'white'}  # Smaller text size
         )
-        ax.set_title(f"Disease Correlation (ε={self.epsilon:.2f})", fontsize=10, pad=10)  # Smaller title font size
+        ax.set_title(f"Disease Correlation (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+
+        # Set the background color of the plot
+        ax.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
 
         # Adjust layout to prevent text overlap
         plt.tight_layout()
 
         self.display_graph(fig)
-        return dp_results
+
+        # Return the differentially private results in a readable format
+        result_str = "Disease Correlation Results:\n"
+        for condition, count in dp_results.items():
+            result_str += f"{condition}: {count:.2f}\n"
+        return result_str
 
     def perform_gender_based_analysis(self):
         """
@@ -403,14 +458,21 @@ class AnalysisView(ttk.Frame):
         icu_values = [v["icu_count"] for v in dp_genders.values()]
 
         # Create pie charts with adjusted figure size
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 3.5))  # Adjusted figure size
-        colors = ['#2ecc71', '#e74c3c']
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
 
-        ax1.pie(total_values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors)
-        ax1.set_title(f"Total Patients by Gender (ε={self.epsilon:.2f})", fontsize=9, pad=10)  # Smaller title font size
+        colors = plt.cm.viridis(np.linspace(0, 1, len(dp_genders)))
 
-        ax2.pie(icu_values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors)
-        ax2.set_title(f"ICU Patients by Gender (ε={self.epsilon:.2f})", fontsize=9, pad=10)  # Smaller title font size
+        ax1.pie(total_values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors, textprops={'color': 'white'})
+        ax1.set_title(f"Total Patients by Gender (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+
+        ax2.pie(icu_values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors, textprops={'color': 'white'})
+        ax2.set_title(f"ICU Patients by Gender (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+
+        # Set the background color of the plot
+        ax1.set_facecolor('#2e2e2e')
+        ax2.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
 
         # Adjust layout to prevent text overlap
         plt.tight_layout()
@@ -418,8 +480,11 @@ class AnalysisView(ttk.Frame):
         # Display the graph
         self.display_graph(fig)
 
-        # Return the differentially private results
-        return dp_genders
+        # Return the differentially private results in a readable format
+        result_str = "Gender-Based Analysis Results:\n"
+        for gender, data in dp_genders.items():
+            result_str += f"Gender {gender} - Total: {data['total']:.2f}, ICU: {data['icu_count']:.2f}\n"
+        return result_str
 
     def perform_regional_analysis(self):
         query = "SELECT usmer, COUNT(*) AS count FROM Patients GROUP BY usmer"
@@ -434,15 +499,42 @@ class AnalysisView(ttk.Frame):
             for row in results
         }
 
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.bar(dp_results.keys(), dp_results.values(), color="#e67e22", edgecolor="black")
-        ax.set_title(f"Regional Analysis (USMER) (ε={self.epsilon:.2f})", fontsize=14, pad=15)
-        ax.set_xlabel("Regions", fontsize=12)
-        ax.set_ylabel("Noisy Count", fontsize=12)
+        fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+
+        # Plot the data with a modern color palette
+        colors = plt.cm.viridis(np.linspace(0, 1, len(dp_results)))
+        ax.bar(dp_results.keys(), dp_results.values(), color=colors, edgecolor='black')
+
+        # Set titles and labels with improved font sizes
+        ax.set_title(f"Regional Analysis (USMER) (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax.set_xlabel("Regions", fontsize=12, color='white')
+        ax.set_ylabel("Noisy Count", fontsize=12, color='white')
+
+        # Improve grid lines
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
+        # Rotate x-axis labels for better readability
+        plt.xticks(rotation=45, ha='right', color='white')
+
+        # Set the color of the tick labels
+        ax.tick_params(axis='x', colors='white')
+        ax.tick_params(axis='y', colors='white')
+
+        # Set the background color of the plot
+        ax.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
+
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
+
         self.display_graph(fig)
-        return dp_results
+
+        # Return the differentially private results in a readable format
+        result_str = "Regional Analysis Results:\n"
+        for region, count in dp_results.items():
+            result_str += f"Region {region}: {count:.2f}\n"
+        return result_str
 
     def perform_time_series_analysis(self):
         query = """
@@ -467,16 +559,41 @@ class AnalysisView(ttk.Frame):
         dates = list(dp_results.keys())
         values = list(dp_results.values())
 
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(dates, values, marker='o', linestyle='-', color='#3498db', linewidth=2)
-        ax.set_title(f"Time Series Analysis (ε={self.epsilon:.2f})", fontsize=14, pad=15)
-        ax.set_xlabel("Date", fontsize=12)
-        ax.set_ylabel("Noisy Death Count", fontsize=12)
-        ax.grid(True, linestyle='--', alpha=0.6)
-        fig.autofmt_xdate(rotation=45)
+        fig, ax = plt.subplots(figsize=(10, 5))  # Adjusted figure size
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+
+        # Plot the data without markers and with a solid line
+        ax.plot(dates, values, linestyle='-', color='#3498db', linewidth=2)
+
+        # Set titles and labels with improved font sizes
+        ax.set_title(f"Time Series Analysis (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax.set_xlabel("Date", fontsize=12, color='white')
+        ax.set_ylabel("Noisy Death Count", fontsize=12, color='white')
+
+        # Improve grid lines
+        ax.grid(True, linestyle='--', alpha=0.7)
+
+        # Rotate x-axis labels for better readability
+        plt.xticks(rotation=45, ha='right', color='white')
+
+        # Set the color of the tick labels
+        ax.tick_params(axis='x', colors='white')
+        ax.tick_params(axis='y', colors='white')
+
+        # Set the background color of the plot
+        ax.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
+
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
 
         self.display_graph(fig)
-        return dp_results
+
+        # Return the differentially private results in a readable format
+        result_str = "Time Series Analysis Results:\n"
+        for date, count in dp_results.items():
+            result_str += f"{date}: {count:.2f}\n"
+        return result_str
 
     def perform_covid_trends(self):
         try:
@@ -514,7 +631,10 @@ class AnalysisView(ttk.Frame):
             weeks = list(dp_results.keys())
             cases = list(dp_results.values())
 
-            fig, ax = plt.subplots(figsize=(10, 5))
+            fig, ax = plt.subplots(figsize=(10, 5))  # Adjusted figure size
+            plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+
+            # Plot the data with a modern color palette
             ax.plot(
                 weeks,
                 cases,
@@ -524,21 +644,36 @@ class AnalysisView(ttk.Frame):
                 linewidth=2,
                 markersize=6
             )
-            ax.set_title(f"COVID Trends Over Time (ε={self.epsilon:.2f})", fontsize=14, pad=15)
-            ax.set_xlabel("Weeks", fontsize=12)
-            ax.set_ylabel("Noisy Cases", fontsize=12)
-            ax.grid(True, linestyle='--', alpha=0.6)
-            fig.autofmt_xdate(rotation=45)
+
+            # Set titles and labels with improved font sizes
+            ax.set_title(f"COVID Trends Over Time (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+            ax.set_xlabel("Weeks", fontsize=12, color='white')
+            ax.set_ylabel("Noisy Cases", fontsize=12, color='white')
+
+            # Improve grid lines
+            ax.grid(True, linestyle='--', alpha=0.7)
+
+            # Rotate x-axis labels for better readability
+            plt.xticks(rotation=45, ha='right', color='white')
+
+            # Set the color of the tick labels
+            ax.tick_params(axis='x', colors='white')
+            ax.tick_params(axis='y', colors='white')
+
+            # Set the background color of the plot
+            ax.set_facecolor('#2e2e2e')
+            fig.patch.set_facecolor('#2e2e2e')
+
+            # Adjust layout to prevent overlap
+            plt.tight_layout()
 
             self.display_graph(fig)
 
             # Return processed data with summary
-            return {
-                "total_weeks": len(weeks),
-                "total_cases": sum(cases),
-                "average_cases_per_week": (sum(cases) / len(cases)) if cases else 0,
-                "data": dp_results
-            }
+            result_str = "COVID Trends Analysis Results:\n"
+            for week, case in dp_results.items():
+                result_str += f"Week {week}: {case:.2f}\n"
+            return result_str
 
         except Exception as e:
             return f"Error analyzing COVID trends: {str(e)}"
@@ -583,18 +718,37 @@ class AnalysisView(ttk.Frame):
         chosen_label = labels[idx]
         chosen_count = data[idx]
 
-        fig, ax = plt.subplots(figsize=(6, 4))
-        bars = ax.bar(labels, data, color='#3498db', edgecolor='black')
-        ax.set_title(f"Disease Priority Analysis (ε={self.epsilon:.2f})", pad=15)
-        ax.set_ylabel("Count")
+        fig, ax = plt.subplots(figsize=(6, 4))  # Adjusted figure size
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+
+        # Plot the data with a modern color palette
+        colors = plt.cm.viridis(np.linspace(0, 1, len(data)))
+        bars = ax.bar(labels, data, color=colors, edgecolor='black')
+
+        # Set titles and labels with improved font sizes
+        ax.set_title(f"Disease Priority Analysis (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax.set_ylabel("Count", fontsize=12, color='white')
+
+        # Improve grid lines
         ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+        # Set the color of the tick labels
+        ax.tick_params(axis='x', colors='white')
+        ax.tick_params(axis='y', colors='white')
+
+        # Set the background color of the plot
+        ax.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
 
         # Seçilen kategoriyi kırmızıya boyayarak vurgulayalım
         bars[idx].set_color('#e74c3c')
 
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
+
         self.display_graph(fig)
 
-        return f"NoisyMax chose '{chosen_label}' (raw count = {chosen_count})."
+        return f"NoisyMax chose '{chosen_label}' (raw count = {chosen_count:.2f})."
 
     def perform_top_death_dates_exponential(self):
         """
@@ -644,11 +798,16 @@ class AnalysisView(ttk.Frame):
         )
 
         # 4) Yatay bar chart oluşturma
-        fig, ax = plt.subplots(figsize=(8, 5))
-        bars = ax.barh(date_labels, died_counts, color='#3498db', edgecolor='black')
+        fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
 
-        ax.set_title(f"Top 10 Death Dates (Exponential) (ε={self.epsilon:.2f})", pad=15)
-        ax.set_ylabel("Date Died")
+        # Plot the data with a modern color palette
+        colors = plt.cm.viridis(np.linspace(0, 1, len(date_labels)))
+        bars = ax.barh(date_labels, died_counts, color=colors, edgecolor='black')
+
+        # Set titles and labels with improved font sizes
+        ax.set_title(f"Top 10 Death Dates (Exponential) (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax.set_ylabel("Date Died", fontsize=12, color='white')
 
         # --- SAYISAL EKSENİ GİZLEME ---
         ax.set_xlabel("")  # x ekseni etiketini boş yap
@@ -674,6 +833,16 @@ class AnalysisView(ttk.Frame):
                     color='white',
                     fontweight='bold'
                 )
+
+        # Set the color of the tick labels
+        ax.tick_params(axis='y', colors='white')
+
+        # Set the background color of the plot
+        ax.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
+
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
 
         self.display_graph(fig)
 
@@ -724,9 +893,22 @@ class AnalysisView(ttk.Frame):
         labels = ['Recovered', 'Not Recovered']
 
         plt.clf()
-        fig, ax = plt.subplots(figsize=(6, 4))
-        ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=90, colors=['#2ecc71', '#e74c3c'])
-        ax.set_title(f"Recovery Rate (ε={self.epsilon:.2f})")
+        fig, ax = plt.subplots(figsize=(6, 4))  # Adjusted figure size
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+
+        # Plot the data with a modern color palette
+        colors = plt.cm.viridis(np.linspace(0, 1, len(labels)))
+        ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors, textprops={'color': 'white'})
+
+        # Set titles and labels with improved font sizes
+        ax.set_title(f"Recovery Rate (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+
+        # Set the background color of the plot
+        ax.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
+
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
 
         self.display_graph(fig)
 
@@ -748,35 +930,66 @@ class AnalysisView(ttk.Frame):
             return "No data available for mortality rate analysis."
 
         # decimal to float for numerical operations
-        age_groups = {str(row["age_group"]) + "-" + str(row["age_group"] + 9): float(row["total_cases"]) for row in results}
-        deaths = {str(row["age_group"]) + "-" + str(row["age_group"] + 9): float(row["deaths"]) for row in results}
+        age_groups = {f"{row['age_group']}-{row['age_group'] + 9}": float(row['total_cases']) for row in results}
+        deaths = {f"{row['age_group']}-{row['age_group'] + 9}": float(row['deaths']) for row in results}
 
-        dp_total_cases = {group: apply_differential_privacy([count], mechanism="Gaussian", epsilon=self.epsilon, sensitivity=1)[0]
-        for group, count in age_groups.items()}
+        dp_total_cases = {
+            group: apply_differential_privacy([count], mechanism="Gaussian", epsilon=self.epsilon, sensitivity=1)[0]
+            for group, count in age_groups.items()
+        }
 
-        dp_deaths = {group: apply_differential_privacy([count], mechanism="Laplace", epsilon=self.epsilon, sensitivity=1)[0]
-        for group, count in deaths.items()}
+        dp_deaths = {
+            group: apply_differential_privacy([count], mechanism="Laplace", epsilon=self.epsilon, sensitivity=1)[0]
+            for group, count in deaths.items()
+        }
 
         # computation of mortality rates safely
         mortality_rates = {
-            group: (dp_deaths[group] / dp_total_cases[group] * 100)
-            if dp_total_cases[group] > 0 else 0
+            group: (dp_deaths[group] / dp_total_cases[group] * 100) if dp_total_cases[group] > 0 else 0
             for group in age_groups
         }
 
         # Clear previous plot before drawing a new one
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.clear()
+        plt.clf()
 
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.bar(mortality_rates.keys(), mortality_rates.values(), color="#e74c3c", edgecolor="black")
-        ax.set_title(f"Mortality Rate by Age Group (ε={self.epsilon:.2f})")
-        ax.set_xlabel("Age Group")
-        ax.set_ylabel("Mortality Rate (%)")
+        # Create a new figure with a modern style
+        fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+
+        # Plot the data with a modern color palette
+        colors = plt.cm.viridis(np.linspace(0, 1, len(mortality_rates)))
+        ax.bar(mortality_rates.keys(), mortality_rates.values(), color=colors, edgecolor='black')
+
+        # Set titles and labels with improved font sizes
+        ax.set_title(f"Mortality Rate by Age Group (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax.set_xlabel("Age Group", fontsize=12, color='white')
+        ax.set_ylabel("Mortality Rate (%)", fontsize=12, color='white')
+
+        # Improve grid lines
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
+        # Rotate x-axis labels for better readability
+        plt.xticks(rotation=45, ha='right', color='white')
+
+        # Set the color of the tick labels
+        ax.tick_params(axis='x', colors='white')
+        ax.tick_params(axis='y', colors='white')
+
+        # Set the background color of the plot
+        ax.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
+
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
+
+        # Display the graph
         self.display_graph(fig)
-        return mortality_rates
+
+        # Return the differentially private results in a readable format
+        result_str = "Mortality Rate by Age Group Results:\n"
+        for age_group, rate in mortality_rates.items():
+            result_str += f"{age_group}: {rate:.2f}%\n"
+        return result_str
 
     def perform_most_affected_age_group(self):
         query = """
@@ -793,7 +1006,7 @@ class AnalysisView(ttk.Frame):
         if not results:
             return "No data available for mortality analysis."
 
-        age_groups = {str(row["age_group"]) + "-" + str(row["age_group"] + 9): float(row["total_cases"]) for row in results}
+        age_groups = {f"{row['age_group']}-{row['age_group'] + 9}": float(row['total_cases']) for row in results}
 
         most_affected_group_index = apply_differential_privacy(
             data=list(age_groups.values()),
@@ -808,18 +1021,28 @@ class AnalysisView(ttk.Frame):
         age_labels = list(age_groups.keys())
         affected_counts = list(age_groups.values())
 
-        fig, ax = plt.subplots(figsize=(8, 5))
-        bars = ax.barh(age_labels, affected_counts, color='#3498db', edgecolor='black')
+        fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
 
-        ax.set_title(f"Most Affected Age Groups (ε={self.epsilon:.2f})", fontsize=14, pad=15, fontweight='bold')
-        ax.set_ylabel("Age Groups", fontsize=12)
+        # Plot the data with a modern color palette
+        colors = plt.cm.viridis(np.linspace(0, 1, len(age_labels)))
+        bars = ax.barh(age_labels, affected_counts, color=colors, edgecolor='black')
 
+        # Set titles and labels with improved font sizes
+        ax.set_title(f"Most Affected Age Groups (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax.set_ylabel("Age Groups", fontsize=12, color='white')
 
-        ax.set_xlabel("")
-        ax.set_xticklabels([])
-        ax.set_xticks([])
-        ax.grid(axis='y', linestyle='--', alpha=0.3)
+        # --- SAYISAL EKSENİ GİZLEME ---
+        ax.set_xlabel("")  # x ekseni etiketini boş yap
+        ax.set_xticklabels([])  # x ekseni üzerindeki yazıları gizle
+        ax.set_xticks([])  # x ekseni üzerindeki çizgileri kaldır
 
+        # Çizgiler (grid) de istenmiyorsa:
+        # ax.grid(False)  # tüm ızgarayı kapatabilir
+        # veya sadece x ekseni gridini kapatmak için:
+        ax.grid(axis='y', linestyle='--', alpha=0.3)  # sadece yatay çizgiler kalsın
+
+        # Seçilen kategoriyi kırmızıya boyayalım
         for i, lbl in enumerate(age_labels):
             if lbl == most_affected_group:
                 bars[i].set_color('#e74c3c')
@@ -832,6 +1055,16 @@ class AnalysisView(ttk.Frame):
                     color='white',
                     fontweight='bold'
                 )
+
+        # Set the color of the tick labels
+        ax.tick_params(axis='y', colors='white')
+
+        # Set the background color of the plot
+        ax.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
+
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
 
         self.display_graph(fig)
 
@@ -878,16 +1111,26 @@ class AnalysisView(ttk.Frame):
         survivor_counts = list(age_groups.values())
 
 
-        fig, ax = plt.subplots(figsize=(8, 5))
-        bars = ax.barh(group_labels, survivor_counts, color='#3498db', edgecolor='black')
-        ax.set_title(f"High-Risk Survivors by Age Group (ε={self.epsilon:.2f})", fontsize=14, pad=15, fontweight='bold')
-        ax.set_ylabel("Age Groups", fontsize=12)
+        fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
+        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
 
-        ax.set_xlabel("")
-        ax.set_xticklabels([])
-        ax.set_xticks([])
+        # Plot the data with a modern color palette
+        colors = plt.cm.viridis(np.linspace(0, 1, len(group_labels)))
+        bars = ax.barh(group_labels, survivor_counts, color=colors, edgecolor='black')
 
-        ax.grid(axis='y', linestyle='--', alpha=0.3)
+        # Set titles and labels with improved font sizes
+        ax.set_title(f"High-Risk Survivors by Age Group (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax.set_ylabel("Age Groups", fontsize=12, color='white')
+
+        # --- SAYISAL EKSENİ GİZLEME ---
+        ax.set_xlabel("")  # x ekseni etiketini boş yap
+        ax.set_xticklabels([])  # x ekseni üzerindeki yazıları gizle
+        ax.set_xticks([])  # x ekseni üzerindeki çizgileri kaldır
+
+        # Çizgiler (grid) de istenmiyorsa:
+        # ax.grid(False)  # tüm ızgarayı kapatabilir
+        # veya sadece x ekseni gridini kapatmak için:
+        ax.grid(axis='y', linestyle='--', alpha=0.3)  # sadece yatay çizgiler kalsın
 
         # highlight most affected age group
         most_affected_group = f"{selected_age//10*10}-{selected_age//10*10+9}"
@@ -903,6 +1146,16 @@ class AnalysisView(ttk.Frame):
                     color='white',
                     fontweight='bold'
                 )
+
+        # Set the color of the tick labels
+        ax.tick_params(axis='y', colors='white')
+
+        # Set the background color of the plot
+        ax.set_facecolor('#2e2e2e')
+        fig.patch.set_facecolor('#2e2e2e')
+
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
 
         self.display_graph(fig)
 
