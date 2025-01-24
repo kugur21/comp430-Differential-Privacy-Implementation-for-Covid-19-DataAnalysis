@@ -80,7 +80,6 @@ class DynamicAnalysisView(ttk.Frame):
         )
         self.epsilon_value_label.pack(side="left", padx=(10, 0))
 
-        # Analysis Selection Dropdown
         analysis_dropdown = ttk.Combobox(
             control_frame,
             textvariable=self.analysis_var,
@@ -91,11 +90,9 @@ class DynamicAnalysisView(ttk.Frame):
         )
         analysis_dropdown.pack(pady=(0, 10))
 
-        # Input Fields Frame
         self.input_frame = ttk.Frame(control_frame)
         self.input_frame.pack(pady=(0, 10))
 
-        # Run Button
         run_button = ttk.Button(
             control_frame,
             text="Run Analysis",
@@ -105,10 +102,7 @@ class DynamicAnalysisView(ttk.Frame):
         )
         run_button.pack(pady=(0, 10))
 
-        # -------------------------------------------
-        # 2. Make the "Analysis Results" smaller:
-        #    - Decrease the text widget’s height/width
-        # -------------------------------------------
+
         results_frame = ttk.LabelFrame(
             self,
             text="Analysis Results",
@@ -123,18 +117,14 @@ class DynamicAnalysisView(ttk.Frame):
 
         self.result_text = ttk.ScrolledText(
             results_frame,
-            height=8,           # smaller height
-            width=40,           # or reduce width if desired
+            height=8,
+            width=40,
             wrap="word",
             font=("Helvetica", 11),
         )
         self.result_text.pack(fill="both", expand=True)
 
-        # --------------------------------------------
-        # 3. Make the "Visualization" frame bigger:
-        #    - Increase the fixed width/height
-        #    - Give it a row with weight=1 (already done)
-        # --------------------------------------------
+
         graph_frame = ttk.LabelFrame(
             self,
             text="Visualization",
@@ -146,11 +136,9 @@ class DynamicAnalysisView(ttk.Frame):
         graph_frame.grid_propagate(False)
         graph_frame.config(width=700, height=500)  # Larger than before
 
-        # Create a frame inside the graph_frame to hold the graph
         self.graph_frame = ttk.Frame(graph_frame)
         self.graph_frame.pack(fill="both", expand=True)
 
-        # Status Bar
         self.status_label = ttk.Label(
             self,
             text="Ready",
@@ -167,7 +155,6 @@ class DynamicAnalysisView(ttk.Frame):
         self.epsilon = float(self.epsilon_var.get())
         selected_analysis = self.analysis_var.get()
 
-        # Clear previous results and graphs
         self.result_text.delete(1.0, "end")
         for widget in self.graph_frame.winfo_children():
             widget.destroy()
@@ -221,7 +208,6 @@ class DynamicAnalysisView(ttk.Frame):
         if not result:
             return "No data available for the given criteria."
 
-        # Apply differential privacy
         dp_result = apply_differential_privacy(
             self.db_connection,
             [result["Patient_Count"]],
@@ -230,13 +216,12 @@ class DynamicAnalysisView(ttk.Frame):
             query=query
         )[0]
 
-        # Create a bar chart for visualization
-        fig, ax = plt.subplots(figsize=(4, 4))  # Square figure size
+        fig, ax = plt.subplots(figsize=(4, 4))
         ax.bar(
-            [f"Age {min_age}-{max_age}"],  # X-axis label
-            [dp_result],  # Y-axis value
-            color='#3498db',  # Bar color
-            edgecolor='black'  # Bar edge color
+            [f"Age {min_age}-{max_age}"],
+            [dp_result],
+            color='#3498db',
+            edgecolor='black'
         )
         ax.set_title(f"Patient Count (ε={self.epsilon:.2f})", fontsize=12, pad=10)
         ax.set_xlabel("Age Group", fontsize=10)
@@ -274,7 +259,6 @@ class DynamicAnalysisView(ttk.Frame):
         if not results:
             return "No data available for the given criteria."
 
-        # Apply differential privacy
         dp_results = {
             row["classification_group"]: apply_differential_privacy(
                 self.db_connection,
@@ -286,10 +270,8 @@ class DynamicAnalysisView(ttk.Frame):
             for row in results
         }
 
-        # Create a bar chart for visualization
-        fig, ax = plt.subplots(figsize=(6, 4))  # Slightly wider figure for better title readability
+        fig, ax = plt.subplots(figsize=(6, 4))
 
-        # Define classification labels
         classification_labels = {
             1: "COVID Level 1",
             2: "COVID Level 2",
@@ -297,22 +279,18 @@ class DynamicAnalysisView(ttk.Frame):
             4: "Non-COVID"
         }
 
-        # Convert dict to lists for plotting
-        classifications = list(dp_results.keys())  # e.g. [1, 2, 3, 4]
-        noisy_counts = list(dp_results.values())  # e.g. [12.4, 8.9, 15.2, 10.0]
+        classifications = list(dp_results.keys())
+        noisy_counts = list(dp_results.values())
 
-        # Map classification numbers to their corresponding labels
         x_labels = [classification_labels[cls] for cls in classifications]
 
-        # Plot DP values by classification
         ax.bar(
-            x_labels,  # X-axis labels (classification labels)
-            noisy_counts,  # Y-axis values (noisy patient counts)
-            color='#3498db',  # Bar color
-            edgecolor='black'  # Bar edge color
+            x_labels,
+            noisy_counts,
+            color='#3498db',
+            edgecolor='black'
         )
 
-        # Create a descriptive title with the selected criteria
         diabetes_status = "Yes" if diabetes == 1 else "No"
         obesity_status = "Yes" if obesity == 1 else "No"
         cardio_status = "Yes" if cardio == 1 else "No"
@@ -327,7 +305,6 @@ class DynamicAnalysisView(ttk.Frame):
         ax.set_ylabel("Noisy Patient Count", fontsize=10)
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
-        # Display the graph
         self.display_graph(fig)
 
         return dp_results
@@ -362,45 +339,42 @@ class DynamicAnalysisView(ttk.Frame):
         icu_admissions = float(result["ICU_Admissions"])
         icu_rate = float(result["ICU_Rate"])
 
-        # Apply differential privacy
         dp_total = apply_differential_privacy(
             self.db_connection,
-            [total_patients],  # Use the converted float value
+            [total_patients],
             mechanism="Laplace",
             epsilon=self.epsilon,
             query=query
         )[0]
         dp_icu = apply_differential_privacy(
             self.db_connection,
-            [icu_admissions],  # Use the converted float value
+            [icu_admissions],
             mechanism="Laplace",
             epsilon=self.epsilon,
             query=query
         )[0]
 
-        # Create a bar chart for visualization
-        fig, ax = plt.subplots(figsize=(4, 4))  # Square figure size
+        fig, ax = plt.subplots(figsize=(4, 4))
         categories = ["Total Patients", "ICU Admissions"]
         values = [dp_total, dp_icu]
 
         ax.bar(
-            categories,  # X-axis labels
-            values,  # Y-axis values
-            color=['#3498db', '#e74c3c'],  # Bar colors
-            edgecolor='black'  # Bar edge color
+            categories,
+            values,
+            color=['#3498db', '#e74c3c'],
+            edgecolor='black'
         )
         ax.set_title(f"Gender and Tobacco Analysis (ε={self.epsilon:.2f})", fontsize=12, pad=10)
         ax.set_xlabel("Category", fontsize=10)
         ax.set_ylabel("Noisy Count", fontsize=10)
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
-        # Display the graph
         self.display_graph(fig)
 
         return {
             "Total Patients (DP)": dp_total,
             "ICU Admissions (DP)": dp_icu,
-            "ICU Rate": icu_rate  # No DP applied to rates
+            "ICU Rate": icu_rate
         }
 
     def perform_death_count_analysis(self):
@@ -423,7 +397,6 @@ class DynamicAnalysisView(ttk.Frame):
         if not result:
             return "No data available for the given criteria."
 
-        # Apply differential privacy
         dp_result = apply_differential_privacy(
             self.db_connection,
             [result["Deaths"]],
@@ -432,14 +405,11 @@ class DynamicAnalysisView(ttk.Frame):
             query=query
         )[0]
 
-        # Create a figure/axes
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(figsize=(4, 4))
 
-        # Plot a single bar
         ax.bar(["Deaths"], [dp_result], color='#3498db', edgecolor='black')
 
-        # Set the title with the date range
         ax.set_title(
             f"Death Count (ε={self.epsilon:.2f})\nDate Range: {start_date} to {end_date}",
             fontsize=12,
@@ -448,7 +418,6 @@ class DynamicAnalysisView(ttk.Frame):
         ax.set_ylabel("Noisy Death Count", fontsize=10)
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
-        # Display the figure in the GUI
         self.display_graph(fig)
 
         return f"Death Count (ε={self.epsilon:.2f}) for Date Range: {start_date} to {end_date}: {dp_result}"
@@ -470,7 +439,7 @@ class DynamicAnalysisView(ttk.Frame):
         WHERE PNEUMONIA = {pneumonia}
           AND INMSUPR = {immunosuppressed}
           AND RENAL_CHRONIC = {renal_chronic}
-          AND ICU NOT IN (97, 99)  -- Exclude missing data values
+          AND ICU NOT IN (97, 99)  
         GROUP BY ICU;
         """
         self.db_connection.execute_query(query)
@@ -491,11 +460,9 @@ class DynamicAnalysisView(ttk.Frame):
             for row in results
         }
 
-        # Create a figure/axes
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(figsize=(4, 4))
 
-        # Convert dict to lists for plotting
         icu_categories = list(dp_results.keys())  # e.g. ["ICU Admitted", "Not Admitted to ICU"]
         noisy_counts = list(dp_results.values())  # e.g. [12.4, 8.9]
 
