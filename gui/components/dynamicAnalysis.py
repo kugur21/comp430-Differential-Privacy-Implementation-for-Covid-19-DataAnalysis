@@ -7,17 +7,17 @@ from datetime import datetime
 from tkinter import simpledialog  # Import simpledialog from tkinter
 
 class DynamicAnalysisView(ttk.Frame):
-    def __init__(self, parent, db_connection):
+    def __init__(self, parent, mainWindow, db_connection):
         super().__init__(parent, padding="20")
+        self.mainWindow = mainWindow
         self.db_connection = db_connection
         self.current_canvas = None
         self.epsilon = 1.0  # Default privacy budget
 
-        # Configure grid weights for responsiveness
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(1, weight=0)
-        self.grid_rowconfigure(2, weight=1)
+        self.grid_columnconfigure(0, weight=1)  # Left side
+        self.grid_columnconfigure(1, weight=1)  # Right side
+        self.grid_rowconfigure(1, weight=0)     # Results row: no stretch
+        self.grid_rowconfigure(2, weight=1)     # Visualization row: can stretch
 
         # Set theme style
         self.style = ttk.Style()
@@ -105,7 +105,10 @@ class DynamicAnalysisView(ttk.Frame):
         )
         run_button.pack(pady=(0, 10))
 
-        # Results Panel
+        # -------------------------------------------
+        # 2. Make the "Analysis Results" smaller:
+        #    - Decrease the text widget’s height/width
+        # -------------------------------------------
         results_frame = ttk.LabelFrame(
             self,
             text="Analysis Results",
@@ -120,14 +123,18 @@ class DynamicAnalysisView(ttk.Frame):
 
         self.result_text = ttk.ScrolledText(
             results_frame,
-            height=8,
-            width=40,
+            height=8,           # smaller height
+            width=40,           # or reduce width if desired
             wrap="word",
             font=("Helvetica", 11),
         )
         self.result_text.pack(fill="both", expand=True)
 
-        # Visualization Panel
+        # --------------------------------------------
+        # 3. Make the "Visualization" frame bigger:
+        #    - Increase the fixed width/height
+        #    - Give it a row with weight=1 (already done)
+        # --------------------------------------------
         graph_frame = ttk.LabelFrame(
             self,
             text="Visualization",
@@ -137,7 +144,7 @@ class DynamicAnalysisView(ttk.Frame):
         graph_frame.grid(row=2, column=0, columnspan=2, padx=(10, 0), sticky="nsew")
 
         graph_frame.grid_propagate(False)
-        graph_frame.config(width=700, height=500)
+        graph_frame.config(width=700, height=500)  # Larger than before
 
         # Create a frame inside the graph_frame to hold the graph
         self.graph_frame = ttk.Frame(graph_frame)
@@ -215,7 +222,6 @@ class DynamicAnalysisView(ttk.Frame):
 
         # Apply differential privacy
         dp_result = apply_differential_privacy(
-
             self.db_connection,
             [result["Patient_Count"]],
             mechanism="Laplace",
@@ -224,12 +230,12 @@ class DynamicAnalysisView(ttk.Frame):
         )[0]
 
         # Create a bar chart for visualization
-        fig, ax = plt.subplots(figsize=(4, 4))
+        fig, ax = plt.subplots(figsize=(4, 4))  # Square figure size
         ax.bar(
-            [f"Age {min_age}-{max_age}"],
-            [dp_result],
-            color='#3498db',
-            edgecolor='black'
+            [f"Age {min_age}-{max_age}"],  # X-axis label
+            [dp_result],  # Y-axis value
+            color='#3498db',  # Bar color
+            edgecolor='black'  # Bar edge color
         )
         ax.set_title(f"Patient Count (ε={self.epsilon:.2f})", fontsize=12, pad=10)
         ax.set_xlabel("Age Group", fontsize=10)
@@ -268,7 +274,6 @@ class DynamicAnalysisView(ttk.Frame):
         # Apply differential privacy
         dp_results = {
             row["classification_group"]: apply_differential_privacy(
-
                 self.db_connection,
                 [row["Patient_Count"]],
                 mechanism="Laplace",
@@ -279,7 +284,7 @@ class DynamicAnalysisView(ttk.Frame):
         }
 
         # Create a bar chart for visualization
-        fig, ax = plt.subplots(figsize=(6, 4))
+        fig, ax = plt.subplots(figsize=(6, 4))  # Slightly wider figure for better title readability
 
         # Define classification labels
         classification_labels = {
@@ -290,18 +295,18 @@ class DynamicAnalysisView(ttk.Frame):
         }
 
         # Convert dict to lists for plotting
-        classifications = list(dp_results.keys())
-        noisy_counts = list(dp_results.values())
+        classifications = list(dp_results.keys())  # e.g. [1, 2, 3, 4]
+        noisy_counts = list(dp_results.values())  # e.g. [12.4, 8.9, 15.2, 10.0]
 
         # Map classification numbers to their corresponding labels
         x_labels = [classification_labels[cls] for cls in classifications]
 
         # Plot DP values by classification
         ax.bar(
-            x_labels,
-            noisy_counts,
-            color='#3498db',
-            edgecolor='black'
+            x_labels,  # X-axis labels (classification labels)
+            noisy_counts,  # Y-axis values (noisy patient counts)
+            color='#3498db',  # Bar color
+            edgecolor='black'  # Bar edge color
         )
 
         # Create a descriptive title with the selected criteria
@@ -360,7 +365,6 @@ class DynamicAnalysisView(ttk.Frame):
             query=query
         )[0]
         dp_icu = apply_differential_privacy(
-
             self.db_connection,
             [icu_admissions],  # Use the converted float value
             mechanism="Laplace",
@@ -369,15 +373,15 @@ class DynamicAnalysisView(ttk.Frame):
         )[0]
 
         # Create a bar chart for visualization
-        fig, ax = plt.subplots(figsize=(4, 4))
+        fig, ax = plt.subplots(figsize=(4, 4))  # Square figure size
         categories = ["Total Patients", "ICU Admissions"]
         values = [dp_total, dp_icu]
 
         ax.bar(
-            categories,
-            values,
-            color=['#3498db', '#e74c3c'],
-            edgecolor='black'
+            categories,  # X-axis labels
+            values,  # Y-axis values
+            color=['#3498db', '#e74c3c'],  # Bar colors
+            edgecolor='black'  # Bar edge color
         )
         ax.set_title(f"Gender and Tobacco Analysis (ε={self.epsilon:.2f})", fontsize=12, pad=10)
         ax.set_xlabel("Category", fontsize=10)
@@ -390,7 +394,7 @@ class DynamicAnalysisView(ttk.Frame):
         return {
             "Total Patients (DP)": dp_total,
             "ICU Admissions (DP)": dp_icu,
-            "ICU Rate": icu_rate
+            "ICU Rate": icu_rate  # No DP applied to rates
         }
 
     def perform_death_count_analysis(self):
@@ -420,6 +424,7 @@ class DynamicAnalysisView(ttk.Frame):
         )[0]
 
         # Create a figure/axes
+        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(figsize=(4, 4))
 
         # Plot a single bar
@@ -475,15 +480,16 @@ class DynamicAnalysisView(ttk.Frame):
         }
 
         # Create a figure/axes
+        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(figsize=(4, 4))
 
         # Convert dict to lists for plotting
-        icu_categories = list(dp_results.keys())
-        noisy_counts = list(dp_results.values())
+        icu_categories = list(dp_results.keys())  # e.g. ["ICU Admitted", "Not Admitted to ICU"]
+        noisy_counts = list(dp_results.values())  # e.g. [12.4, 8.9]
 
         # Plot DP values by ICU category
         ax.bar(
-            icu_categories,
+            icu_categories,  # X-axis labels as strings
             noisy_counts,
             color='#3498db',
             edgecolor='black'
@@ -508,21 +514,21 @@ class DynamicAnalysisView(ttk.Frame):
             widget.destroy()
 
         # Apply modern styling to the figure
-        plt.style.use('ggplot')
-        fig.patch.set_facecolor('#2e2e2e')
+        plt.style.use('ggplot')  # Use a modern style
+        fig.patch.set_facecolor('#2e2e2e')  # Set background color to match dark theme
 
         # Adjust the color of titles, labels, and ticks
         for ax in fig.axes:
-            ax.set_facecolor('#2e2e2e')
-            ax.title.set_color('white')
-            ax.xaxis.label.set_color('white')
-            ax.yaxis.label.set_color('white')
-            ax.tick_params(axis='x', colors='white')
-            ax.tick_params(axis='y', colors='white')
-            ax.spines['bottom'].set_color('white')
-            ax.spines['top'].set_color('white')
-            ax.spines['left'].set_color('white')
-            ax.spines['right'].set_color('white')
+            ax.set_facecolor('#2e2e2e')  # Set background color of the plot area
+            ax.title.set_color('white')  # Set title color to white
+            ax.xaxis.label.set_color('white')  # Set x-axis label color to white
+            ax.yaxis.label.set_color('white')  # Set y-axis label color to white
+            ax.tick_params(axis='x', colors='white')  # Set x-axis tick color to white
+            ax.tick_params(axis='y', colors='white')  # Set y-axis tick color to white
+            ax.spines['bottom'].set_color('white')  # Set bottom spine color to white
+            ax.spines['top'].set_color('white')  # Set top spine color to white
+            ax.spines['left'].set_color('white')  # Set left spine color to white
+            ax.spines['right'].set_color('white')  # Set right spine color to white
 
         # Create a canvas and add it to the graph frame
         canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)

@@ -89,4 +89,3 @@ def exponential_mechanism(data, utility, epsilon, sensitivity=1):
     probabilities = np.exp((epsilon * np.array(scaled_utilities)) / 2)
     probabilities /= probabilities.sum()  # Normalize
     return np.random.choice(data, p=probabilities)
-
