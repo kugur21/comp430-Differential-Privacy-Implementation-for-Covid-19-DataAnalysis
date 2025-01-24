@@ -33,8 +33,8 @@ def apply_differential_privacy(data, mechanism="Gaussian", epsilon=2.0, utility=
         raise ValueError(f"Geçersiz mekanizma: {mechanism}")
 
 
-def gaussian_mechanism(data, epsilon, delta, sensitivity=1):
-    sigma = np.sqrt(2 * np.log(1.25 / delta)) * sensitivity / epsilon
+def gaussian_mechanism(data, epsilon, sensitivity=1):
+    sigma = np.sqrt(2 * np.log(1.25 / 1e-5)) * sensitivity / epsilon
     noise = np.random.normal(0, sigma, len(data))
     return [x + n for x, n in zip(data, noise)]
 

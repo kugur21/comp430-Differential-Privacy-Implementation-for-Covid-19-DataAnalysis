@@ -245,23 +245,54 @@ class AnalysisView(ttk.Frame):
         self.current_canvas = canvas
 
     def perform_age_group_distribution(self):
-        # Example static data
-        age_groups = {"0-10": 10, "11-20": 20, "21-30": 30, "31-40": 25, "41+": 15}
+        """
+        Fetches age distribution data from the database, applies differential privacy,
+        and visualizes the results.
+        """
+        # SQL query to group patients by age groups
+        query = """
+        SELECT 
+            FLOOR(age / 10) * 10 AS age_group, 
+            COUNT(*) AS count
+        FROM Patients
+        WHERE age IS NOT NULL  -- Exclude missing age values
+        GROUP BY FLOOR(age / 10) * 10
+        ORDER BY age_group;
+        """
+        self.db_connection.execute_query(query)
+        results = self.db_connection.cursor.fetchall()
 
-        # Apply DP with the *current* epsilon each time
+        if not results:
+            return "No age distribution data available."
+
+        # Convert query results into a dictionary: {age_group: count}
+        age_groups = {f"{row['age_group']}-{row['age_group'] + 9}": float(row['count'])
+                      for row in results}
+
+        # Apply differential privacy to each age group count
+        delta = 1e-5  # Required for Gaussian mechanism
         dp_results = {
-            group: apply_differential_privacy([count], mechanism="Gaussian", epsilon=self.epsilon)[0]
+            group: apply_differential_privacy(
+                [count],
+                mechanism="Gaussian",
+                epsilon=self.epsilon,
+                sensitivity=1
+            )[0]
             for group, count in age_groups.items()
         }
 
-        fig, ax = plt.subplots(figsize=(6, 4))
+        # Plot the results
+        fig, ax = plt.subplots(figsize=(8, 5))
         ax.bar(dp_results.keys(), dp_results.values(), color='#3498db', edgecolor='black')
-        ax.set_title(f"Age Distribution (ε={self.epsilon:.2f})", fontsize=12, pad=15)
-        ax.set_xlabel("Age Groups", fontsize=10)
-        ax.set_ylabel("Noisy Count", fontsize=10)
+        ax.set_title(f"Age Distribution (ε={self.epsilon:.2f})", fontsize=14, pad=15)
+        ax.set_xlabel("Age Groups", fontsize=12)
+        ax.set_ylabel("Noisy Count", fontsize=12)
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
+        # Display the graph
         self.display_graph(fig)
+
+        # Return the differentially private results
         return dp_results
 
     def perform_icu_statistics(self):
