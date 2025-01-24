@@ -1,55 +1,38 @@
 import numpy as np
 
 def calculate_sensitivity(db_connection, query):
-    """
-    Sorgunun türüne göre sensitivity değerini otomatik olarak hesaplar.
-    """
     query = query.lower().strip()
 
     if "count" in query:
-        # COUNT sorguları için sensitivity genellikle 1'dir.
         return 1
     elif "sum" in query:
-        # SUM sorguları için sensitivity, sütundaki maksimum değere bağlıdır.
-        # Örneğin, SUM(age) için MAX(age) değerini buluruz.
-        column = query.split("sum(")[1].split(")")[0]  # SUM(age) -> age
+        column = query.split("sum(")[1].split(")")[0]
         max_query = f"SELECT MAX({column}) FROM Patients;"
         db_connection.execute_query(max_query)
         result = db_connection.cursor.fetchone()
         return result[f"MAX({column})"] if result else 1
     elif "avg" in query:
-        # AVG sorguları için sensitivity, SUM ve COUNT sensitivity'lerine bağlıdır.
-        # Örneğin, AVG(age) için MAX(age) / 1.
-        column = query.split("avg(")[1].split(")")[0]  # AVG(age) -> age
+        column = query.split("avg(")[1].split(")")[0]
         max_query = f"SELECT MAX({column}) FROM Patients;"
         db_connection.execute_query(max_query)
         result = db_connection.cursor.fetchone()
         return result[f"MAX({column})"] if result else 1
     elif "group by" in query:
-        # GROUP BY sorguları için sensitivity genellikle 1'dir.
         return 1
     elif "min" in query or "max" in query:
-        # MIN veya MAX sorguları için sensitivity, sütundaki maksimum değere bağlıdır.
         column = query.split("min(")[1].split(")")[0] if "min" in query else query.split("max(")[1].split(")")[0]
         max_query = f"SELECT MAX({column}) FROM Patients;"
         db_connection.execute_query(max_query)
         result = db_connection.cursor.fetchone()
         return result[f"MAX({column})"] if result else 1
     elif "case" in query:
-        # CASE WHEN sorguları için sensitivity genellikle 1'dir.
         return 1
     elif "where" in query:
-        # WHERE koşulu içeren sorgular için sensitivity genellikle 1'dir.
         return 1
     else:
-        # Diğer sorgular için varsayılan sensitivity değeri.
         return 1
 
 def apply_differential_privacy(db_connection, data, mechanism="Gaussian", epsilon=2.0, utility=None, sensitivity=None, query=None):
-    """
-    Diferansiyel gizlilik mekanizmalarını uygular.
-    Sensitivity otomatik olarak hesaplanır veya manuel olarak belirtilir.
-    """
     if sensitivity is None and query is not None:
         sensitivity = calculate_sensitivity(db_connection, query)
 
@@ -61,10 +44,10 @@ def apply_differential_privacy(db_connection, data, mechanism="Gaussian", epsilo
         return report_noisy_max(data, epsilon, sensitivity)
     elif mechanism == "Exponential":
         if utility is None:
-            raise ValueError("Exponential mekanizması için 'utility' parametresi gereklidir.")
+            raise ValueError("Utility is required for Exponential mechanism.")
         return exponential_mechanism(data, utility, epsilon, sensitivity)
     else:
-        raise ValueError(f"Geçersiz mekanizma: {mechanism}")
+        raise ValueError(f"Invalid Mechanism: {mechanism}")
 
 def gaussian_mechanism(data, epsilon, sensitivity=1):
     sigma = np.sqrt(2 * np.log(1.25 / 1e-5)) * sensitivity / epsilon
@@ -83,7 +66,7 @@ def report_noisy_max(data, epsilon, sensitivity=1):
 
 def exponential_mechanism(data, utility, epsilon, sensitivity=1):
     if len(data) != len(utility):
-        raise ValueError("data ve utility aynı uzunlukta olmalıdır.")
+        raise ValueError("Data and Utility must have the same length.")
 
     scaled_utilities = [u / sensitivity for u in utility]
     probabilities = np.exp((epsilon * np.array(scaled_utilities)) / 2)

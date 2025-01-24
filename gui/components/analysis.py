@@ -1,7 +1,7 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
-from privacy.differential_privacy import apply_differential_privacy, calculate_sensitivity
+from privacy.differential_privacy import apply_differential_privacy
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
@@ -259,11 +259,11 @@ class AnalysisView(ttk.Frame):
 
         dp_results = {
             group: apply_differential_privacy(
-                self.db_connection,  # DB bağlantısını iletiyoruz
+                self.db_connection,
                 [count],
                 mechanism="Gaussian",
                 epsilon=self.epsilon,
-                query=query  # Sensitivity otomatik olarak hesaplanır
+                query=query
             )[0]
             for group, count in age_groups.items()
         }
@@ -352,8 +352,8 @@ class AnalysisView(ttk.Frame):
         disease_labels = ['Diabetes', 'Hypertension', 'Obesity']
         disease_counts = [dp_diabetes_count, dp_hipertension_count, dp_obesity_count]
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))  # Adjusted figure size
-        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+        plt.style.use('ggplot')
 
         colors_gender = plt.cm.viridis(np.linspace(0, 1, len(gender_labels)))
         ax1.pie(gender_counts, labels=gender_labels, autopct="%1.1f%%", startangle=90, colors=colors_gender,
@@ -486,7 +486,7 @@ class AnalysisView(ttk.Frame):
         icu_values = [v["icu_count"] for v in dp_genders.values()]
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+        plt.style.use('ggplot')
 
         colors = plt.cm.viridis(np.linspace(0, 1, len(dp_genders)))
 
@@ -537,15 +537,15 @@ class AnalysisView(ttk.Frame):
 
         labels = list(dp_results.keys())
         sizes = list(dp_results.values())
-        colors = plt.cm.viridis(np.linspace(0, 1, len(labels)))  # Modern renk paleti
+        colors = plt.cm.viridis(np.linspace(0, 1, len(labels)))
 
         wedges, texts, autotexts = ax.pie(
             sizes,
             labels=labels,
-            autopct='%1.1f%%',  # Yüzde değerlerini göster
-            startangle=90,  # Başlangıç açısı
+            autopct='%1.1f%%',
+            startangle=90,
             colors=colors,
-            textprops={'fontsize': 10, 'color': 'white'}  # Yazı boyutu ve rengi
+            textprops={'fontsize': 10, 'color': 'white'}
         )
 
         ax.set_title(f"Medical Unit Level Distribution (ε={self.epsilon:.2f})", fontsize=12, pad=10, color='white')
@@ -940,8 +940,8 @@ class AnalysisView(ttk.Frame):
 
         plt.clf()
 
-        fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
-        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+        fig, ax = plt.subplots(figsize=(8, 5))
+        plt.style.use('ggplot')
 
         colors = plt.cm.viridis(np.linspace(0, 1, len(mortality_rates)))
         ax.bar(mortality_rates.keys(), mortality_rates.values(), color=colors, edgecolor='black')
@@ -950,26 +950,20 @@ class AnalysisView(ttk.Frame):
         ax.set_xlabel("Age Group", fontsize=12, color='white')
         ax.set_ylabel("Mortality Rate (%)", fontsize=12, color='white')
 
-        # Improve grid lines
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
-        # Rotate x-axis labels for better readability
         plt.xticks(rotation=45, ha='right', color='white')
 
-        # Set the color of the tick labels
         ax.tick_params(axis='x', colors='white')
         ax.tick_params(axis='y', colors='white')
 
-        # Set the background color of the plot
         ax.set_facecolor('#2e2e2e')
         fig.patch.set_facecolor('#2e2e2e')
 
-        # Adjust layout to prevent overlap
         plt.tight_layout()
 
         self.display_graph(fig)
 
-        # Return the differentially private results in a readable format
         result_str = "Mortality Rate by Age Group Results:\n"
         for age_group, rate in mortality_rates.items():
             result_str += f"{age_group}: {rate:.2f}%\n"
@@ -990,7 +984,6 @@ class AnalysisView(ttk.Frame):
         if not results:
             return "No data available for mortality analysis."
 
-        # Convert data to appropriate types
         age_groups = {str(row["age_group"]) + "-" + str(row["age_group"] + 9): float(row["total_cases"]) for row in
                       results}
 
@@ -1013,12 +1006,10 @@ class AnalysisView(ttk.Frame):
         ax.set_title(f"Most Affected Age Groups (ε={self.epsilon:.2f})", fontsize=14, pad=15, fontweight='bold')
         ax.set_ylabel("Age Groups", fontsize=12)
 
-        # Hide X-axis labels for a cleaner look
         ax.set_xlabel("")
         ax.set_xticklabels([])
         ax.set_xticks([])
 
-        # Add grid lines for readability
         ax.grid(axis='y', linestyle='--', alpha=0.3)
 
         for i, lbl in enumerate(age_labels):
@@ -1080,28 +1071,22 @@ class AnalysisView(ttk.Frame):
         group_labels = list(age_groups.keys())
         survivor_counts = list(age_groups.values())
 
-        fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
-        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+        fig, ax = plt.subplots(figsize=(8, 5))
+        plt.style.use('ggplot')
 
-        # Plot the data with a modern color palette
         colors = plt.cm.viridis(np.linspace(0, 1, len(group_labels)))
         bars = ax.barh(group_labels, survivor_counts, color=colors, edgecolor='black')
 
-        # Set titles and labels with improved font sizes
         ax.set_title(f"High-Risk Survivors by Age Group (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
         ax.set_ylabel("Age Groups", fontsize=12, color='white')
 
-        # --- SAYISAL EKSENİ GİZLEME ---
-        ax.set_xlabel("")  # x ekseni etiketini boş yap
-        ax.set_xticklabels([])  # x ekseni üzerindeki yazıları gizle
-        ax.set_xticks([])  # x ekseni üzerindeki çizgileri kaldır
+        ax.set_xlabel("")
+        ax.set_xticklabels([])
+        ax.set_xticks([])
 
-        # Çizgiler (grid) de istenmiyorsa:
-        # ax.grid(False)  # tüm ızgarayı kapatabilir
-        # veya sadece x ekseni gridini kapatmak için:
-        ax.grid(axis='y', linestyle='--', alpha=0.3)  # sadece yatay çizgiler kalsın
 
-        # highlight most affected age group
+        ax.grid(axis='y', linestyle='--', alpha=0.3)
+
         most_affected_group = f"{selected_age // 10 * 10}-{selected_age // 10 * 10 + 9}"
         for i, lbl in enumerate(group_labels):
             if lbl == most_affected_group:

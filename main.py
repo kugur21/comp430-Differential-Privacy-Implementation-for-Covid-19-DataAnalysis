@@ -5,27 +5,23 @@ from gui.main_window import MainWindow
 from database.connection import DatabaseConnection
 from database.initializer import initialize_database, load_data
 
-#project
 class Application(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.style = Style("cosmo")  # Apply a ttkbootstrap theme
+        self.style = Style("cosmo")
         self.title("Privacy-Preserving COVID-19 Data Analysis")
         self.geometry("1400x1200")
 
-        # Database connection
         self.db = DatabaseConnection()
         if not self.db.connect():
             print("Failed to connect to the database. Exiting.")
             self.destroy()
             return
 
-        # Initialize the database schema
         self.initialize_database()
 
         self.load_account_and_covid_data()
 
-        # Initialize the app with the login screen
         self.current_frame = None
         self.show_login_screen()
 
@@ -80,11 +76,8 @@ class Application(tk.Tk):
 
 
 if __name__ == "__main__":
-    # Initialize the application
     app = Application()
 
-    # Handle cleanup on close
     app.protocol("WM_DELETE_WINDOW", app.on_close)
 
-    # Run the application
     app.mainloop()

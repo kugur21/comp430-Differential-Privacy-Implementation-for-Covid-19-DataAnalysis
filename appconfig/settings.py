@@ -1,8 +1,3 @@
-"""
-Application settings and configuration.
-Loads environment variables and provides configuration dictionaries for different parts of the application.
-"""
-
 import os
 from dotenv import load_dotenv
 import logging.config

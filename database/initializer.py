@@ -70,8 +70,6 @@ def load_data(db_connection, accounts_csv_path, covid_data_csv_path):
     :param db_connection: The database connection instance.
     """
 
-    # Insert data from accounts.csv into Users table
     insert_data_from_csv(db_connection, accounts_csv_path, 'users')
 
-    # Insert data from reducedCovidData.csv into Patients table
     insert_data_from_csv(db_connection, covid_data_csv_path, 'patients')

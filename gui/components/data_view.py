@@ -11,11 +11,9 @@ class DataView(ttk.Frame):
         self.setup_ui()
 
     def setup_ui(self):
-        # Title
         title = ttk.Label(self, text="Data Viewer", font=("TkDefaultFont", 16, "bold"))
         title.pack(pady=10)
 
-        # Search frame
         search_frame = ttk.Frame(self)
         search_frame.pack(fill="x", padx=10, pady=5)
 
@@ -36,7 +34,6 @@ class DataView(ttk.Frame):
         ttk.Button(search_frame, text="Reset",
                    command=self.load_data).pack(side="left")
 
-        # Rows per page
         rows_per_page_frame = ttk.Frame(self)
         rows_per_page_frame.pack(fill="x", padx=10, pady=5)
 
@@ -48,7 +45,6 @@ class DataView(ttk.Frame):
         ttk.Button(rows_per_page_frame, text="Apply",
                    command=self.update_rows_per_page).pack(side="left", padx=5)
 
-        # Create table
         self.columns = [
             "patient_id", "usmer", "medical_unit", "sex", "patient_type", "date_died",
             "intubed", "pneumonia", "age", "pregnant", "diabetes", "copd", "asthma",
@@ -56,19 +52,16 @@ class DataView(ttk.Frame):
             "renal_chronic", "tobacco", "classification_final", "icu"
         ]
 
-        # Table frame with scrollbars
         table_frame = ttk.Frame(self)
         table_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
         self.table = ttk.Treeview(table_frame, columns=self.columns, show="headings", height=20)
 
-        # Scrollbars
         y_scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.table.yview)
         x_scrollbar = ttk.Scrollbar(table_frame, orient="horizontal", command=self.table.xview)
 
         self.table.configure(yscrollcommand=y_scrollbar.set, xscrollcommand=x_scrollbar.set)
 
-        # Grid layout
         self.table.grid(row=0, column=0, sticky="nsew")
         y_scrollbar.grid(row=0, column=1, sticky="ns")
         x_scrollbar.grid(row=1, column=0, sticky="ew")
@@ -76,7 +69,6 @@ class DataView(ttk.Frame):
         table_frame.grid_columnconfigure(0, weight=1)
         table_frame.grid_rowconfigure(0, weight=1)
 
-        # Configure columns
         for col in self.columns:
             display_name = col.replace("_", " ").title()
             self.table.heading(col, text=display_name,
@@ -84,7 +76,6 @@ class DataView(ttk.Frame):
             width = 70 if col in ["patient_id", "age", "usmer"] else 100
             self.table.column(col, anchor="center", width=width, minwidth=50)
 
-        # Pagination controls
         pagination_frame = ttk.Frame(self)
         pagination_frame.pack(fill="x", padx=10, pady=5)
 
@@ -97,19 +88,15 @@ class DataView(ttk.Frame):
         self.next_button = ttk.Button(pagination_frame, text="Next", command=self.next_page)
         self.next_button.pack(side="left", padx=5)
 
-        # Load initial data
         self.load_data()
 
     def load_data(self, filters=None):
         try:
-            # Clear the table first
             for item in self.table.get_children():
                 self.table.delete(item)
 
-            # Calculate offset for pagination
             offset = (self.current_page - 1) * self.rows_per_page
 
-            # Base query
             query = """
                 SELECT patient_id, usmer, medical_unit, sex, patient_type, date_died, intubed, pneumonia,
                        age, pregnant, diabetes, copd, asthma, inmsupr, hipertension, other_disease,
@@ -117,7 +104,6 @@ class DataView(ttk.Frame):
                 FROM Patients
             """
 
-            # Add filters if provided
             if filters:
                 query += f" WHERE {filters}"
 
@@ -126,11 +112,9 @@ class DataView(ttk.Frame):
             self.db_connection.execute_query(query)
             rows = self.db_connection.cursor.fetchall()
 
-            # Insert rows into the table
             for row in rows:
                 self.table.insert("", "end", values=tuple(row.values()))
 
-            # Update total rows and pagination
             self.update_total_rows(filters)
             self.update_pagination_controls()
         except Exception as e:
@@ -145,7 +129,6 @@ class DataView(ttk.Frame):
             self.db_connection.execute_query(query)
             result = self.db_connection.cursor.fetchone()
 
-            # Check if result is valid
             if result:
                 self.total_rows = int(result["total"])
             else:
@@ -192,14 +175,11 @@ class DataView(ttk.Frame):
             ttk.Messagebox.show_error(title="Error", message="Please enter a valid number for rows per page.")
 
     def sort_column(self, column):
-        # Sort the table rows by the selected column
         rows = [(self.table.set(k, column), k) for k in self.table.get_children("")]
         rows.sort(key=lambda x: x[0])
 
-        # Rearrange rows in sorted order
         for index, (_, k) in enumerate(rows):
             self.table.move(k, "", index)
 
     def refresh_data(self):
-        # Reload all data from the database
         self.load_data()

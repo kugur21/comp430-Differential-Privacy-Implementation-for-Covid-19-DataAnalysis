@@ -12,19 +12,17 @@ class DynamicAnalysisView(ttk.Frame):
         self.mainWindow = mainWindow
         self.db_connection = db_connection
         self.current_canvas = None
-        self.epsilon = 1.0  # Default privacy budget
+        self.epsilon = 1.0
 
-        self.grid_columnconfigure(0, weight=1)  # Left side
-        self.grid_columnconfigure(1, weight=1)  # Right side
-        self.grid_rowconfigure(1, weight=0)     # Results row: no stretch
-        self.grid_rowconfigure(2, weight=1)     # Visualization row: can stretch
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=0)
+        self.grid_rowconfigure(2, weight=1)
 
-        # Set theme style
         self.style = ttk.Style()
         self.setup_ui()
 
     def setup_ui(self):
-        # Header Section
         header_frame = ttk.Frame(self)
         header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 20))
 
@@ -36,7 +34,6 @@ class DynamicAnalysisView(ttk.Frame):
         )
         title.pack(pady=(0, 10))
 
-        # Analysis Selection
         self.analysis_options = [
             "Age and Patient Type Analysis",
             "Disease and Classification Analysis",
@@ -46,11 +43,9 @@ class DynamicAnalysisView(ttk.Frame):
         ]
         self.analysis_var = ttk.StringVar(value=self.analysis_options[0])
 
-        # Control Panel
         control_frame = ttk.Frame(self)
         control_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 20))
 
-        # Epsilon slider
         epsilon_frame = ttk.Frame(control_frame)
         epsilon_frame.pack(pady=(0, 10))
 
@@ -111,7 +106,6 @@ class DynamicAnalysisView(ttk.Frame):
         )
         results_frame.grid(row=1, column=1, padx=(10, 0), sticky="nsew")
 
-        # Force a smaller size on the frame (optional)
         results_frame.grid_propagate(False)
         results_frame.config(width=300, height=200)
 
@@ -134,7 +128,7 @@ class DynamicAnalysisView(ttk.Frame):
         graph_frame.grid(row=2, column=0, columnspan=2, padx=(10, 0), sticky="nsew")
 
         graph_frame.grid_propagate(False)
-        graph_frame.config(width=700, height=500)  # Larger than before
+        graph_frame.config(width=700, height=500)
 
         self.graph_frame = ttk.Frame(graph_frame)
         self.graph_frame.pack(fill="both", expand=True)
@@ -228,7 +222,6 @@ class DynamicAnalysisView(ttk.Frame):
         ax.set_ylabel("Noisy Patient Count", fontsize=10)
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
-        # Display the graph
         self.display_graph(fig)
 
         return f"Patient Count (ε={self.epsilon:.2f}): {dp_result}"
@@ -334,7 +327,6 @@ class DynamicAnalysisView(ttk.Frame):
         if not result:
             return "No data available for the given criteria."
 
-        # Convert decimal.Decimal to float
         total_patients = float(result["Total_Patients"])
         icu_admissions = float(result["ICU_Admissions"])
         icu_rate = float(result["ICU_Rate"])
@@ -448,7 +440,6 @@ class DynamicAnalysisView(ttk.Frame):
         if not results:
             return "No data available for the given criteria."
 
-        # Apply differential privacy
         dp_results = {
             "ICU Admitted" if row["ICU"] == 1 else "Not Admitted to ICU": apply_differential_privacy(
                 self.db_connection,
@@ -463,12 +454,11 @@ class DynamicAnalysisView(ttk.Frame):
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(figsize=(4, 4))
 
-        icu_categories = list(dp_results.keys())  # e.g. ["ICU Admitted", "Not Admitted to ICU"]
-        noisy_counts = list(dp_results.values())  # e.g. [12.4, 8.9]
+        icu_categories = list(dp_results.keys())
+        noisy_counts = list(dp_results.values())
 
-        # Plot DP values by ICU category
         ax.bar(
-            icu_categories,  # X-axis labels as strings
+            icu_categories,
             noisy_counts,
             color='#3498db',
             edgecolor='black'
@@ -478,7 +468,6 @@ class DynamicAnalysisView(ttk.Frame):
         ax.set_ylabel("Noisy Patient Count", fontsize=10)
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
-        # Display the figure in your tkinter GUI
         self.display_graph(fig)
 
         return dp_results
@@ -488,28 +477,24 @@ class DynamicAnalysisView(ttk.Frame):
 
     def display_graph(self, fig):
         """Displays a matplotlib graph in the graph frame with modern styling."""
-        # Clear previous graph
         for widget in self.graph_frame.winfo_children():
             widget.destroy()
 
-        # Apply modern styling to the figure
-        plt.style.use('ggplot')  # Use a modern style
-        fig.patch.set_facecolor('#2e2e2e')  # Set background color to match dark theme
+        plt.style.use('ggplot')
+        fig.patch.set_facecolor('#2e2e2e')
 
-        # Adjust the color of titles, labels, and ticks
         for ax in fig.axes:
-            ax.set_facecolor('#2e2e2e')  # Set background color of the plot area
-            ax.title.set_color('white')  # Set title color to white
-            ax.xaxis.label.set_color('white')  # Set x-axis label color to white
-            ax.yaxis.label.set_color('white')  # Set y-axis label color to white
-            ax.tick_params(axis='x', colors='white')  # Set x-axis tick color to white
-            ax.tick_params(axis='y', colors='white')  # Set y-axis tick color to white
-            ax.spines['bottom'].set_color('white')  # Set bottom spine color to white
-            ax.spines['top'].set_color('white')  # Set top spine color to white
-            ax.spines['left'].set_color('white')  # Set left spine color to white
-            ax.spines['right'].set_color('white')  # Set right spine color to white
+            ax.set_facecolor('#2e2e2e')
+            ax.title.set_color('white')
+            ax.xaxis.label.set_color('white')
+            ax.yaxis.label.set_color('white')
+            ax.tick_params(axis='x', colors='white')
+            ax.tick_params(axis='y', colors='white')
+            ax.spines['bottom'].set_color('white')
+            ax.spines['top'].set_color('white')
+            ax.spines['left'].set_color('white')
+            ax.spines['right'].set_color('white')
 
-        # Create a canvas and add it to the graph frame
         canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
         canvas_widget = canvas.get_tk_widget()
         canvas_widget.pack(fill="both", expand=True)

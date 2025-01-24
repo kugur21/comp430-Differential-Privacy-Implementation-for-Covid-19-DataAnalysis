@@ -5,11 +5,10 @@ import pandas as pd
 class UploadView(ttk.Frame):
     def __init__(self, parent, db_connection):
         super().__init__(parent)
-        self.db_connection = db_connection  # Database connection instance
+        self.db_connection = db_connection
         self.setup_ui()
 
     def setup_ui(self):
-        # Disclaimer Section
         disclaimer_frame = ttk.LabelFrame(self, text="Data Format Requirements", padding=10)
         disclaimer_frame.pack(fill="x", padx=10, pady=10)
 
@@ -26,7 +25,6 @@ class UploadView(ttk.Frame):
         )
         disclaimer_label.pack(padx=10, pady=5)
 
-        # Upload Section
         upload_frame = ttk.LabelFrame(self, text="Upload CSV", padding=10)
         upload_frame.pack(fill="x", padx=10, pady=10)
 
@@ -35,24 +33,20 @@ class UploadView(ttk.Frame):
         ).pack(side="left", padx=10, pady=5)
 
     def upload_csv(self):
-        # Select CSV file
         file_path = filedialog.askopenfilename(
             title="Select CSV File", filetypes=[("CSV Files", "*.csv")]
         )
         if not file_path:
-            return  # No file selected
+            return
 
         try:
-            # Load CSV into a DataFrame
             data = pd.read_csv(file_path)
             print(f"Dataset loaded successfully with {len(data)} rows.")
 
-            # Validate and insert data
             if self.validate_and_insert_data(data):
                 messagebox.showinfo("Success", f"Data uploaded successfully with {len(data)} rows.")
                 print(f"Data uploaded successfully with {len(data)} rows.")
 
-                # Notify parent component to refresh the data view
                 if hasattr(self.master, 'data_view') and hasattr(self.master.data_view, 'refresh_data'):
                     self.master.data_view.refresh_data()
         except Exception as e:
@@ -67,17 +61,14 @@ class UploadView(ttk.Frame):
             'TOBACCO', 'CLASIFFICATION_FINAL', 'ICU'
         ]
 
-        # Normalize column names to uppercase
         data.columns = data.columns.str.upper()
 
-        # Check for missing columns
         missing_columns = set(required_columns) - set(data.columns)
         if missing_columns:
             messagebox.showerror("Validation Error", f"Missing columns: {', '.join(missing_columns)}")
             print(f"Validation Error: Missing columns: {', '.join(missing_columns)}")
             return False
 
-        # Convert date column to MySQL-compatible format
         if 'DATE_DIED' in data.columns:
             try:
                 data['DATE_DIED'] = pd.to_datetime(
@@ -88,7 +79,6 @@ class UploadView(ttk.Frame):
                 print(f"Date Conversion Error: {str(e)}")
                 return False
 
-        # Insert data into the database
         try:
             query = """
                 INSERT INTO Patients (
