@@ -45,9 +45,9 @@ class AnalysisView(ttk.Frame):
             "Regional Analysis (USMER)",
             "Time Series Analysis",
             "COVID Trends",
-            "Disease Priority Analysis",    # <-- NoisyMax adlı analizi bu şekilde yeniden adlandırdık
-            "Disease Weighted Selection",    # <-- Exponential Analysis için yeni başlık
-            "Recovery Rate Analysis", 
+            "Disease Priority Analysis",
+            "Disease Weighted Selection",
+            "Recovery Rate Analysis",
             "Mortality Rate by Age Group",
             "Most Affected Age",
             "High Risk Survivor"
@@ -79,7 +79,7 @@ class AnalysisView(ttk.Frame):
             to=10,
             orient='horizontal',
             variable=self.epsilon_var,
-            command=self._update_epsilon_label,  # callback to update label live
+            command=self._update_epsilon_label,
             bootstyle="primary"
         )
         epsilon_slider.pack(side="left")
@@ -139,7 +139,7 @@ class AnalysisView(ttk.Frame):
         self.result_text = ScrolledText(
             results_frame,
             height=20,
-            width=40,
+            width=60,
             wrap="word",
             font=("Helvetica", 11),
             autohide=True
@@ -155,7 +155,7 @@ class AnalysisView(ttk.Frame):
         )
         graph_frame.grid(row=0, column=1, padx=(10, 0), sticky="nsew")
 
-        self.graph_frame = ttk.Frame(graph_frame)
+        self.graph_frame = ttk.Frame(graph_frame, width=600, height=400)
         self.graph_frame.pack(fill="both", expand=True)
 
         # Status Bar
@@ -203,7 +203,6 @@ class AnalysisView(ttk.Frame):
                 result = self.perform_disease_priority_analysis()
             elif selected_analysis == "Disease Weighted Selection":
                 result = self.perform_top_death_dates_exponential()
-
             elif selected_analysis == "Recovery Rate Analysis":
                 result = self.perform_recovery_rate_analysis()
             elif selected_analysis == "Mortality Rate by Age Group":
@@ -238,6 +237,7 @@ class AnalysisView(ttk.Frame):
 
         canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
         canvas_widget = canvas.get_tk_widget()
+        canvas_widget.config(width=600, height=400)
         canvas_widget.pack(fill="both", expand=True)
 
         fig.tight_layout()
@@ -270,7 +270,6 @@ class AnalysisView(ttk.Frame):
                       for row in results}
 
         # Apply differential privacy to each age group count
-        delta = 1e-5  # Required for Gaussian mechanism
         dp_results = {
             group: apply_differential_privacy(
                 [count],
@@ -316,6 +315,7 @@ class AnalysisView(ttk.Frame):
         query = """
         SELECT COUNT(*) AS count, diabetes, hipertension 
         FROM Patients 
+        WHERE diabetes IN (1, 2) AND hipertension IN (1, 2)  
         GROUP BY diabetes, hipertension
         """
         self.db_connection.execute_query(query)
@@ -330,47 +330,95 @@ class AnalysisView(ttk.Frame):
             for row in results
         }
 
-        fig, ax = plt.subplots(figsize=(7, 7))
+        # Adjust figure size to fit the frame
+        fig, ax = plt.subplots(figsize=(4, 5))  # Smaller figure size
         wedges, texts, autotexts = ax.pie(
             dp_results.values(),
             labels=dp_results.keys(),
             autopct='%1.1f%%',
             startangle=90,
             colors=plt.cm.Pastel1(np.linspace(0, 1, len(dp_results))),
-            textprops={'fontsize': 9}
+            textprops={'fontsize': 8}  # Smaller text size
         )
-        ax.set_title(f"Disease Correlation (ε={self.epsilon:.2f})", fontsize=14, pad=20)
+        ax.set_title(f"Disease Correlation (ε={self.epsilon:.2f})", fontsize=10, pad=10)  # Smaller title font size
+
+        # Adjust layout to prevent text overlap
+        plt.tight_layout()
 
         self.display_graph(fig)
         return dp_results
 
     def perform_gender_based_analysis(self):
-        # Example static data
-        genders = {1: {"total": 4922, "icu_count": 133}, 2: {"total": 5077, "icu_count": 232}}
+        """
+        Fetches gender-based patient and ICU statistics from the database,
+        applies differential privacy, and visualizes the results.
+        """
+        # SQL query to get total patients and ICU patients by gender
+        query = """
+        SELECT 
+            sex AS gender,
+            COUNT(*) AS total,
+            SUM(CASE WHEN icu = 1 THEN 1 ELSE 0 END) AS icu_count
+        FROM Patients
+        WHERE sex IN (1, 2)  -- Filter out missing values (e.g., 97, 99)
+        GROUP BY sex;
+        """
+        self.db_connection.execute_query(query)
+        results = self.db_connection.cursor.fetchall()
+
+        if not results:
+            return "No gender-based data available."
+
+        # Convert query results into a dictionary: {gender: {"total": count, "icu_count": count}}
+        genders = {
+            row["gender"]: {
+                "total": float(row["total"]),
+                "icu_count": float(row["icu_count"])
+            }
+            for row in results
+        }
 
         # Apply differential privacy to all values
         dp_genders = {
             k: {
-                "total": apply_differential_privacy([v["total"]], mechanism="Gaussian", epsilon=self.epsilon)[0],
-                "icu_count": apply_differential_privacy([v["icu_count"]], mechanism="Gaussian", epsilon=self.epsilon)[0]
+                "total": apply_differential_privacy(
+                    [v["total"]],
+                    mechanism="Gaussian",
+                    epsilon=self.epsilon,
+                    sensitivity=1
+                )[0],
+                "icu_count": apply_differential_privacy(
+                    [v["icu_count"]],
+                    mechanism="Gaussian",
+                    epsilon=self.epsilon,
+                    sensitivity=1
+                )[0]
             }
             for k, v in genders.items()
         }
 
+        # Prepare data for visualization
         labels = [f"Gender {k}" for k in dp_genders.keys()]
         total_values = [v["total"] for v in dp_genders.values()]
         icu_values = [v["icu_count"] for v in dp_genders.values()]
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        # Create pie charts with adjusted figure size
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 3.5))  # Adjusted figure size
         colors = ['#2ecc71', '#e74c3c']
 
         ax1.pie(total_values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors)
-        ax1.set_title(f"Total Patients by Gender (ε={self.epsilon:.2f})", pad=15)
+        ax1.set_title(f"Total Patients by Gender (ε={self.epsilon:.2f})", fontsize=9, pad=10)  # Smaller title font size
 
         ax2.pie(icu_values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors)
-        ax2.set_title(f"ICU Patients by Gender (ε={self.epsilon:.2f})", pad=15)
+        ax2.set_title(f"ICU Patients by Gender (ε={self.epsilon:.2f})", fontsize=9, pad=10)  # Smaller title font size
 
+        # Adjust layout to prevent text overlap
+        plt.tight_layout()
+
+        # Display the graph
         self.display_graph(fig)
+
+        # Return the differentially private results
         return dp_genders
 
     def perform_regional_analysis(self):
@@ -635,9 +683,6 @@ class AnalysisView(ttk.Frame):
             "Note: X-axis numeric scale is hidden."
         )
 
-
-
-
     def perform_recovery_rate_analysis(self):
         query = """
         SELECT 
@@ -687,8 +732,6 @@ class AnalysisView(ttk.Frame):
 
         return f"Recovery Rate (ε={self.epsilon:.2f}): {recovery_rate:.2f}%"
 
-
-
     def perform_mortality_rate_by_age_group(self):
         query = """
             SELECT FLOOR(age / 10) * 10 AS age_group, 
@@ -715,8 +758,11 @@ class AnalysisView(ttk.Frame):
         for group, count in deaths.items()}
 
         # computation of mortality rates safely
-        mortality_rates = {group: (dp_deaths[group] / dp_total_cases[group] * 100) if dp_total_cases[group] > 0 else 0
-            for group in age_groups}
+        mortality_rates = {
+            group: (dp_deaths[group] / dp_total_cases[group] * 100)
+            if dp_total_cases[group] > 0 else 0
+            for group in age_groups
+        }
 
         # Clear previous plot before drawing a new one
         fig, ax = plt.subplots(figsize=(8, 5))
@@ -731,10 +777,6 @@ class AnalysisView(ttk.Frame):
 
         self.display_graph(fig)
         return mortality_rates
-
-
-
-###iki gün önce çalışan bu kısım şimdi sürekli aynı sonucu veriyor tekrar bakmaya çalışm ondan atamadım
 
     def perform_most_affected_age_group(self):
         query = """
@@ -795,9 +837,6 @@ class AnalysisView(ttk.Frame):
 
         return f"The most affected age group is {most_affected_group} years."
 
-
-
-
     def perform_high_risk_survivors(self):
         query = """
             SELECT patient_id, age, diabetes, obesity, hipertension, intubed, icu
@@ -817,17 +856,17 @@ class AnalysisView(ttk.Frame):
         ages = [row["age"] for row in results]
 
         dp_survivors_count = apply_differential_privacy(
-            [len(results)], 
-            mechanism="Laplace", 
-            epsilon=self.epsilon, 
+            [len(results)],
+            mechanism="Laplace",
+            epsilon=self.epsilon,
             sensitivity=1)[0]
 
 
         selected_age = apply_differential_privacy(
-            data=ages, 
-            mechanism="Exponential", 
-            epsilon=self.epsilon, 
-            utility=ages, 
+            data=ages,
+            mechanism="Exponential",
+            epsilon=self.epsilon,
+            utility=ages,
             sensitivity=1)
 
         age_groups = {f"{age//10*10}-{age//10*10+9}": 0 for age in ages}
