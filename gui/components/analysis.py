@@ -43,7 +43,7 @@ class AnalysisView(ttk.Frame):
             "ICU Statistics",
             "Disease Correlation",
             "Gender-Based ICU Analysis",
-            "Regional Analysis (USMER)",
+            "Medical Unit Analysis",
             "Time Series Analysis",
             "COVID Trends",
             "Disease Priority Analysis",
@@ -193,7 +193,7 @@ class AnalysisView(ttk.Frame):
                 result = self.perform_disease_correlation()
             elif selected_analysis == "Gender-Based ICU Analysis":
                 result = self.perform_gender_based_analysis()
-            elif selected_analysis == "Regional Analysis (USMER)":
+            elif selected_analysis == "Medical Unit Analysis":
                 result = self.perform_regional_analysis()
             elif selected_analysis == "Time Series Analysis":
                 result = self.perform_time_series_analysis()
@@ -320,39 +320,94 @@ class AnalysisView(ttk.Frame):
         return result_str
 
     def perform_icu_statistics(self):
-        query = "SELECT COUNT(*) AS icu_count FROM Patients WHERE icu = 1"
+        # Query to get detailed ICU statistics
+        query = """
+        SELECT 
+            COUNT(*) AS total_icu_patients,
+            AVG(age) AS avg_age,
+            SUM(CASE WHEN sex = 1 THEN 1 ELSE 0 END) AS male_count,
+            SUM(CASE WHEN sex = 2 THEN 1 ELSE 0 END) AS female_count,
+            SUM(CASE WHEN diabetes = 1 THEN 1 ELSE 0 END) AS diabetes_count,
+            SUM(CASE WHEN hipertension = 1 THEN 1 ELSE 0 END) AS hipertension_count,
+            SUM(CASE WHEN obesity = 1 THEN 1 ELSE 0 END) AS obesity_count
+        FROM Patients
+        WHERE icu = 1;
+        """
         self.db_connection.execute_query(query)
         result = self.db_connection.cursor.fetchone()
-        icu_count = result['icu_count'] if result else 0
 
-        dp_result = apply_differential_privacy([icu_count], mechanism="Laplace", epsilon=self.epsilon)
+        if not result:
+            return "No ICU data available."
 
-        fig, ax = plt.subplots(figsize=(6, 4))  # Adjusted figure size
+        # Extract results
+        total_icu_patients = float(result['total_icu_patients'])
+        avg_age = float(result['avg_age'])
+        male_count = float(result['male_count'])
+        female_count = float(result['female_count'])
+        diabetes_count = float(result['diabetes_count'])
+        hipertension_count = float(result['hipertension_count'])
+        obesity_count = float(result['obesity_count'])
+
+        # Apply differential privacy to all counts
+        dp_total_icu_patients = \
+        apply_differential_privacy([total_icu_patients], mechanism="Laplace", epsilon=self.epsilon)[0]
+        dp_avg_age = apply_differential_privacy([avg_age], mechanism="Laplace", epsilon=self.epsilon)[0]
+        dp_male_count = apply_differential_privacy([male_count], mechanism="Laplace", epsilon=self.epsilon)[0]
+        dp_female_count = apply_differential_privacy([female_count], mechanism="Laplace", epsilon=self.epsilon)[0]
+        dp_diabetes_count = apply_differential_privacy([diabetes_count], mechanism="Laplace", epsilon=self.epsilon)[0]
+        dp_hipertension_count = \
+        apply_differential_privacy([hipertension_count], mechanism="Laplace", epsilon=self.epsilon)[0]
+        dp_obesity_count = apply_differential_privacy([obesity_count], mechanism="Laplace", epsilon=self.epsilon)[0]
+
+        # Prepare data for visualization
+        gender_labels = ['Male', 'Female']
+        gender_counts = [dp_male_count, dp_female_count]
+
+        disease_labels = ['Diabetes', 'Hypertension', 'Obesity']
+        disease_counts = [dp_diabetes_count, dp_hipertension_count, dp_obesity_count]
+
+        # Create subplots for gender and disease distribution
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))  # Adjusted figure size
         plt.style.use('ggplot')  # Use seaborn style for better aesthetics
 
-        # Plot the data with a modern color palette
-        ax.bar(["ICU Patients"], [dp_result[0]], color='#3498db', edgecolor='black')
+        # Plot gender distribution
+        colors_gender = plt.cm.viridis(np.linspace(0, 1, len(gender_labels)))
+        ax1.pie(gender_counts, labels=gender_labels, autopct="%1.1f%%", startangle=90, colors=colors_gender,
+                textprops={'color': 'white'})
+        ax1.set_title(f"Gender Distribution in ICU (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
 
-        # Set titles and labels with improved font sizes
-        ax.set_title(f"ICU Statistics (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
-        ax.set_ylabel("Noisy Count", fontsize=12, color='white')
+        # Plot disease distribution
+        colors_disease = plt.cm.viridis(np.linspace(0, 1, len(disease_labels)))
+        ax2.bar(disease_labels, disease_counts, color=colors_disease, edgecolor='black')
+        ax2.set_title(f"Disease Distribution in ICU (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
+        ax2.set_ylabel("Noisy Count", fontsize=12, color='white')
+        ax2.grid(axis='y', linestyle='--', alpha=0.7)
+        ax2.tick_params(axis='x', colors='white')
+        ax2.tick_params(axis='y', colors='white')
 
-        # Improve grid lines
-        ax.grid(axis='y', linestyle='--', alpha=0.7)
-
-        # Set the color of the tick labels
-        ax.tick_params(axis='x', colors='white')
-        ax.tick_params(axis='y', colors='white')
-
-        # Set the background color of the plot
-        ax.set_facecolor('#2e2e2e')
+        # Set the background color of the plots
+        ax1.set_facecolor('#2e2e2e')
+        ax2.set_facecolor('#2e2e2e')
         fig.patch.set_facecolor('#2e2e2e')
 
         # Adjust layout to prevent overlap
         plt.tight_layout()
 
+        # Display the graph
         self.display_graph(fig)
-        return f"ICU Statistics (ε={self.epsilon:.2f}): {dp_result[0]:.2f}"
+
+        # Return the differentially private results in a readable format
+        result_str = (
+            f"ICU Statistics (ε={self.epsilon:.2f}):\n"
+            f"Total ICU Patients: {dp_total_icu_patients:.2f}\n"
+            f"Average Age: {dp_avg_age:.2f}\n"
+            f"Male Patients: {dp_male_count:.2f}\n"
+            f"Female Patients: {dp_female_count:.2f}\n"
+            f"Patients with Diabetes: {dp_diabetes_count:.2f}\n"
+            f"Patients with Hypertension: {dp_hipertension_count:.2f}\n"
+            f"Patients with Obesity: {dp_obesity_count:.2f}\n"
+        )
+        return result_str
 
     def perform_disease_correlation(self):
         query = """
@@ -494,32 +549,41 @@ class AnalysisView(ttk.Frame):
         if not results:
             return "No data available for regional analysis."
 
+        # Map usmer values to their corresponding medical unit levels
+        usmer_mapping = {
+            1: "First Level",
+            2: "Second Level",
+            3: "Third Level"
+        }
+
+        # Apply differential privacy to the counts
         dp_results = {
-            row['usmer']: apply_differential_privacy([row['count']], mechanism="Laplace", epsilon=self.epsilon)[0]
+            usmer_mapping[row['usmer']]:
+                apply_differential_privacy([row['count']], mechanism="Laplace", epsilon=self.epsilon)[0]
             for row in results
         }
 
-        fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
+        # Create the plot with a smaller size
+        fig, ax = plt.subplots(figsize=(6, 4))  # Smaller figure size
         plt.style.use('ggplot')  # Use seaborn style for better aesthetics
 
-        # Plot the data with a modern color palette
-        colors = plt.cm.viridis(np.linspace(0, 1, len(dp_results)))
-        ax.bar(dp_results.keys(), dp_results.values(), color=colors, edgecolor='black')
+        # Prepare data for pie chart
+        labels = list(dp_results.keys())
+        sizes = list(dp_results.values())
+        colors = plt.cm.viridis(np.linspace(0, 1, len(labels)))  # Modern renk paleti
 
-        # Set titles and labels with improved font sizes
-        ax.set_title(f"Regional Analysis (USMER) (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
-        ax.set_xlabel("Regions", fontsize=12, color='white')
-        ax.set_ylabel("Noisy Count", fontsize=12, color='white')
+        # Plot the pie chart
+        wedges, texts, autotexts = ax.pie(
+            sizes,
+            labels=labels,
+            autopct='%1.1f%%',  # Yüzde değerlerini göster
+            startangle=90,  # Başlangıç açısı
+            colors=colors,
+            textprops={'fontsize': 10, 'color': 'white'}  # Yazı boyutu ve rengi
+        )
 
-        # Improve grid lines
-        ax.grid(axis='y', linestyle='--', alpha=0.7)
-
-        # Rotate x-axis labels for better readability
-        plt.xticks(rotation=45, ha='right', color='white')
-
-        # Set the color of the tick labels
-        ax.tick_params(axis='x', colors='white')
-        ax.tick_params(axis='y', colors='white')
+        # Set titles with improved font sizes
+        ax.set_title(f"Medical Unit Level Distribution (ε={self.epsilon:.2f})", fontsize=12, pad=10, color='white')
 
         # Set the background color of the plot
         ax.set_facecolor('#2e2e2e')
@@ -528,14 +592,14 @@ class AnalysisView(ttk.Frame):
         # Adjust layout to prevent overlap
         plt.tight_layout()
 
+        # Display the graph
         self.display_graph(fig)
 
         # Return the differentially private results in a readable format
-        result_str = "Regional Analysis Results:\n"
+        result_str = "Medical Unit Level Distribution Results:\n"
         for region, count in dp_results.items():
-            result_str += f"Region {region}: {count:.2f}\n"
+            result_str += f"{region}: {count:.2f}\n"
         return result_str
-
     def perform_time_series_analysis(self):
         query = """
         SELECT date_died, COUNT(*) AS deaths 
