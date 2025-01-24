@@ -181,58 +181,62 @@ class AnalysisView(ttk.Frame):
         self.result_text.delete(1.0, "end")
         for widget in self.graph_frame.winfo_children():
             widget.destroy()
-
-        try:
-            selected_analysis = self.analysis_var.get()
-            # Get the current epsilon value from the slider (integer from 1 to 10)
-            self.epsilon = float(self.epsilon_var.get())
-
-            if selected_analysis == "Age Distribution":
-                result = self.perform_age_group_distribution()
-            elif selected_analysis == "ICU Statistics":
-                result = self.perform_icu_statistics()
-            elif selected_analysis == "Disease Correlation":
-                result = self.perform_disease_correlation()
-            elif selected_analysis == "Gender-Based ICU Analysis":
-                result = self.perform_gender_based_analysis()
-            elif selected_analysis == "Medical Unit Analysis":
-                result = self.perform_regional_analysis()
-            elif selected_analysis == "Time Series Analysis":
-                result = self.perform_time_series_analysis()
-            elif selected_analysis == "COVID Trends":
-                result = self.perform_covid_trends()
-            elif selected_analysis == "Disease Priority Analysis":
-                result = self.perform_disease_priority_analysis()
-            elif selected_analysis == "Disease Weighted Selection":
-                result = self.perform_top_death_dates_exponential()
-            elif selected_analysis == "Recovery Rate Analysis":
-                result = self.perform_recovery_rate_analysis()
-            elif selected_analysis == "Mortality Rate by Age Group":
-                result = self.perform_mortality_rate_by_age_group()
-            elif selected_analysis == "Most Affected Age":
-                result = self.perform_most_affected_age_group()
-            elif selected_analysis == "High Risk Survivor":
-                result = self.perform_high_risk_survivors()
-            else:
-                result = "Invalid Analysis Selected"
-
-            self.result_text.insert("end", str(result))
-            self.status_label.configure(
-                text=f"Analysis completed successfully (ε={self.epsilon:.2f})",
-                bootstyle="success"
-            )
-
-        except Exception as e:
-            self.result_text.insert("end", f"Error: {str(e)}")
-            self.status_label.configure(
-                text="Error occurred during analysis",
-                bootstyle="danger"
-            )
-
-        finally:
-            self.mainWindow.update_privacy_budget(self.epsilon)
+        self.epsilon = float(self.epsilon_var.get())
+        if not self.mainWindow.update_privacy_budget(self.epsilon):
             self.progress.stop()
             self.progress.pack_forget()
+        else:
+            try:
+                selected_analysis = self.analysis_var.get()
+                # Get the current epsilon value from the slider (integer from 1 to 10)
+
+                if selected_analysis == "Age Distribution":
+                    result = self.perform_age_group_distribution()
+                elif selected_analysis == "ICU Statistics":
+                    result = self.perform_icu_statistics()
+                elif selected_analysis == "Disease Correlation":
+                    result = self.perform_disease_correlation()
+                elif selected_analysis == "Gender-Based ICU Analysis":
+                    result = self.perform_gender_based_analysis()
+                elif selected_analysis == "Medical Unit Analysis":
+                    result = self.perform_regional_analysis()
+                elif selected_analysis == "Time Series Analysis":
+                    result = self.perform_time_series_analysis()
+                elif selected_analysis == "COVID Trends":
+                    result = self.perform_covid_trends()
+                elif selected_analysis == "Disease Priority Analysis":
+                    result = self.perform_disease_priority_analysis()
+                elif selected_analysis == "Disease Weighted Selection":
+                    result = self.perform_top_death_dates_exponential()
+                elif selected_analysis == "Recovery Rate Analysis":
+                    result = self.perform_recovery_rate_analysis()
+                elif selected_analysis == "Mortality Rate by Age Group":
+                    result = self.perform_mortality_rate_by_age_group()
+                elif selected_analysis == "Most Affected Age":
+                    result = self.perform_most_affected_age_group()
+                elif selected_analysis == "High Risk Survivor":
+                    result = self.perform_high_risk_survivors()
+                else:
+                    result = "Invalid Analysis Selected"
+
+                self.result_text.insert("end", str(result))
+                self.status_label.configure(
+                    text=f"Analysis completed successfully (ε={self.epsilon:.2f})",
+                    bootstyle="success"
+                )
+
+            except Exception as e:
+                self.result_text.insert("end", f"Error: {str(e)}")
+                self.status_label.configure(
+                    text="Error occurred during analysis",
+                    bootstyle="danger"
+                )
+
+            finally:
+                self.progress.stop()
+                self.progress.pack_forget()
+
+
 
     def display_graph(self, fig):
         plt.style.use('ggplot')  # Modern grafik stili

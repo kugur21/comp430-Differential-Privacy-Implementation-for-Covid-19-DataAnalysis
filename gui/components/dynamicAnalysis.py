@@ -171,34 +171,35 @@ class DynamicAnalysisView(ttk.Frame):
         self.result_text.delete(1.0, "end")
         for widget in self.graph_frame.winfo_children():
             widget.destroy()
+        if self.mainWindow.update_privacy_budget(self.epsilon):
+            try:
 
-        try:
-            if selected_analysis == "Age and Patient Type Analysis":
-                result = self.perform_age_patient_type_analysis()
-            elif selected_analysis == "Disease and Classification Analysis":
-                result = self.perform_disease_classification_analysis()
-            elif selected_analysis == "Gender and Tobacco Analysis":
-                result = self.perform_gender_tobacco_analysis()
-            elif selected_analysis == "Death Count Analysis":
-                result = self.perform_death_count_analysis()
-            elif selected_analysis == "ICU and Comorbidity Analysis":
-                result = self.perform_icu_comorbidity_analysis()
-            else:
-                result = "Invalid Analysis Selected"
+                if selected_analysis == "Age and Patient Type Analysis":
+                    result = self.perform_age_patient_type_analysis()
+                elif selected_analysis == "Disease and Classification Analysis":
+                    result = self.perform_disease_classification_analysis()
+                elif selected_analysis == "Gender and Tobacco Analysis":
+                    result = self.perform_gender_tobacco_analysis()
+                elif selected_analysis == "Death Count Analysis":
+                    result = self.perform_death_count_analysis()
+                elif selected_analysis == "ICU and Comorbidity Analysis":
+                    result = self.perform_icu_comorbidity_analysis()
+                else:
+                    result = "Invalid Analysis Selected"
 
-            self.mainWindow.update_privacy_budget(self.epsilon)
-            self.result_text.insert("end", str(result))
-            self.status_label.configure(
-                text=f"Analysis completed successfully (ε={self.epsilon:.2f})",
-                bootstyle="success"
-            )
+                self.result_text.insert("end", str(result))
+                self.status_label.configure(
+                    text=f"Analysis completed successfully (ε={self.epsilon:.2f})",
+                    bootstyle="success"
+                )
 
-        except Exception as e:
-            self.result_text.insert("end", f"Error: {str(e)}")
-            self.status_label.configure(
-                text="Error occurred during analysis",
-                bootstyle="danger"
-            )
+            except Exception as e:
+                self.result_text.insert("end", f"Error: {str(e)}")
+                self.status_label.configure(
+                    text="Error occurred during analysis",
+                    bootstyle="danger"
+                )
+
 
     def perform_age_patient_type_analysis(self):
         """Query: Age and Patient Type Analysis"""
