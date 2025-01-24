@@ -16,29 +16,76 @@ class LoginScreen(ttk.Frame):
         self.setup_ui()
 
     def setup_ui(self):
-        # Create the login frame
-        login_frame = ttk.Frame(self, padding="20")
-        login_frame.pack(expand=True)
+        # Use the "superhero" theme for a dark background
+        style = ttk.Style(theme="superhero")  # Koyu tema
 
-        # Title
-        title = ttk.Label(login_frame, text="Login", font=("TkDefaultFont", 20, "bold"))
-        title.pack(pady=10)
+        # Set the background color of the main frame to match the theme
+        self.configure(bootstyle="superhero")  # Ana çerçevenin arka plan rengini ayarla
 
-        # Username
-        username_label = ttk.Label(login_frame, text="Username:")
-        username_label.pack(anchor="w")
-        self.username_entry = ttk.Entry(login_frame)
-        self.username_entry.pack(fill="x", pady=5)
+        # Create the login frame with a modern look
+        login_frame = ttk.Frame(self, padding="40 30 40 30", style="dark.TFrame")
+        login_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        # Password
-        password_label = ttk.Label(login_frame, text="Password:")
-        password_label.pack(anchor="w")
-        self.password_entry = ttk.Entry(login_frame, show="*")
-        self.password_entry.pack(fill="x", pady=5)
+        # Title with a modern font and style
+        title = ttk.Label(
+            login_frame,
+            text="Login",
+            font=("Helvetica", 24, "bold"),
+            bootstyle="inverse-light"  # Başlık için açık renk
+        )
+        title.pack(pady=(0, 20))
 
-        # Login Button
-        login_button = ttk.Button(login_frame, text="Login", command=self.handle_login, style="primary.TButton")
-        login_button.pack(pady=10)
+        # Username field
+        username_label = ttk.Label(
+            login_frame,
+            text="Username:",
+            font=("Helvetica", 12),
+            bootstyle="light"  # Açık renk metin
+        )
+        username_label.pack(anchor="w", pady=(10, 0))
+
+        self.username_entry = ttk.Entry(
+            login_frame,
+            font=("Helvetica", 12),
+            bootstyle="light"  # Açık renk giriş alanı
+        )
+        self.username_entry.pack(fill="x", pady=5, ipady=5)
+
+        # Password field
+        password_label = ttk.Label(
+            login_frame,
+            text="Password:",
+            font=("Helvetica", 12),
+            bootstyle="light"  # Açık renk metin
+        )
+        password_label.pack(anchor="w", pady=(10, 0))
+
+        self.password_entry = ttk.Entry(
+            login_frame,
+            show="*",
+            font=("Helvetica", 12),
+            bootstyle="light"  # Açık renk giriş alanı
+        )
+        self.password_entry.pack(fill="x", pady=5, ipady=5)
+
+        # Login Button with a modern style
+        login_button = ttk.Button(
+            login_frame,
+            text="Login",
+            command=self.handle_login,
+            style="success.TButton",  # Yeşil renkli buton
+            width=20
+        )
+        login_button.pack(pady=20)
+
+        # Add a subtle footer message
+        footer_label = ttk.Label(
+            login_frame,
+            text="© COMP430 DATA PRIVACY PROJECT.",
+            font=("Helvetica", 9),
+            bootstyle="secondary"  # İkincil renk
+        )
+        footer_label.pack(side="bottom", pady=(20, 0))
 
     def handle_login(self):
         username = self.username_entry.get().strip()
