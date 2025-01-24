@@ -8,8 +8,9 @@ import numpy as np
 
 
 class AnalysisView(ttk.Frame):
-    def __init__(self, parent, db_connection):
+    def __init__(self, parent, mainWindow, db_connection):
         super().__init__(parent, padding="20")
+        self.mainWindow = mainWindow
         self.db_connection = db_connection
         self.current_canvas = None
         self.epsilon = 1.0  # Default privacy budget
@@ -229,6 +230,7 @@ class AnalysisView(ttk.Frame):
             )
 
         finally:
+            self.mainWindow.update_privacy_budget(self.epsilon)
             self.progress.stop()
             self.progress.pack_forget()
 

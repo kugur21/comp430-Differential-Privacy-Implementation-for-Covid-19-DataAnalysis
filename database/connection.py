@@ -1,6 +1,6 @@
 import mysql.connector
 from mysql.connector import Error
-from config.settings import DB_CONFIG
+from appconfig.settings import DB_CONFIG
 import logging
 
 logger = logging.getLogger(__name__)

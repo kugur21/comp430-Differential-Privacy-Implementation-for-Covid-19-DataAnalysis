@@ -7,16 +7,13 @@ from datetime import datetime
 from tkinter import simpledialog  # Import simpledialog from tkinter
 
 class DynamicAnalysisView(ttk.Frame):
-    def __init__(self, parent, db_connection):
+    def __init__(self, parent, mainWindow, db_connection):
         super().__init__(parent, padding="20")
+        self.mainWindow = mainWindow
         self.db_connection = db_connection
         self.current_canvas = None
         self.epsilon = 1.0  # Default privacy budget
 
-        # ------------------------------------------------------
-        # 1. Configure grid weights so row 2 (the visualization)
-        #    can expand more than the results in row 1, column 1.
-        # ------------------------------------------------------
         self.grid_columnconfigure(0, weight=1)  # Left side
         self.grid_columnconfigure(1, weight=1)  # Right side
         self.grid_rowconfigure(1, weight=0)     # Results row: no stretch
@@ -189,6 +186,7 @@ class DynamicAnalysisView(ttk.Frame):
             else:
                 result = "Invalid Analysis Selected"
 
+            self.mainWindow.update_privacy_budget(self.epsilon)
             self.result_text.insert("end", str(result))
             self.status_label.configure(
                 text=f"Analysis completed successfully (ε={self.epsilon:.2f})",
