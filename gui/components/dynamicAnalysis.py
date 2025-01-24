@@ -171,34 +171,32 @@ class DynamicAnalysisView(ttk.Frame):
         self.result_text.delete(1.0, "end")
         for widget in self.graph_frame.winfo_children():
             widget.destroy()
-        if self.mainWindow.update_privacy_budget(self.epsilon):
-            try:
+        try:
+            if selected_analysis == "Age and Patient Type Analysis":
+                result = self.perform_age_patient_type_analysis()
+            elif selected_analysis == "Disease and Classification Analysis":
+                result = self.perform_disease_classification_analysis()
+            elif selected_analysis == "Gender and Tobacco Analysis":
+                result = self.perform_gender_tobacco_analysis()
+            elif selected_analysis == "Death Count Analysis":
+                result = self.perform_death_count_analysis()
+            elif selected_analysis == "ICU and Comorbidity Analysis":
+                result = self.perform_icu_comorbidity_analysis()
+            else:
+                result = "Invalid Analysis Selected"
 
-                if selected_analysis == "Age and Patient Type Analysis":
-                    result = self.perform_age_patient_type_analysis()
-                elif selected_analysis == "Disease and Classification Analysis":
-                    result = self.perform_disease_classification_analysis()
-                elif selected_analysis == "Gender and Tobacco Analysis":
-                    result = self.perform_gender_tobacco_analysis()
-                elif selected_analysis == "Death Count Analysis":
-                    result = self.perform_death_count_analysis()
-                elif selected_analysis == "ICU and Comorbidity Analysis":
-                    result = self.perform_icu_comorbidity_analysis()
-                else:
-                    result = "Invalid Analysis Selected"
+            self.result_text.insert("end", str(result))
+            self.status_label.configure(
+                text=f"Analysis completed successfully (ε={self.epsilon:.2f})",
+                bootstyle="success"
+            )
 
-                self.result_text.insert("end", str(result))
-                self.status_label.configure(
-                    text=f"Analysis completed successfully (ε={self.epsilon:.2f})",
-                    bootstyle="success"
-                )
-
-            except Exception as e:
-                self.result_text.insert("end", f"Error: {str(e)}")
-                self.status_label.configure(
-                    text="Error occurred during analysis",
-                    bootstyle="danger"
-                )
+        except Exception as e:
+            self.result_text.insert("end", f"Error: {str(e)}")
+            self.status_label.configure(
+                text="Error occurred during analysis",
+                bootstyle="danger"
+            )
 
 
     def perform_age_patient_type_analysis(self):
@@ -206,6 +204,9 @@ class DynamicAnalysisView(ttk.Frame):
         min_age = self.get_input("Enter minimum age:", int)
         max_age = self.get_input("Enter maximum age:", int)
         patient_type = self.get_input("Enter patient type (1 for home, 2 for hospitalization):", int)
+
+        if not self.mainWindow.update_privacy_budget(self.epsilon):
+            return "Privacy budget exceeded. Please reduce the epsilon value."
 
         query = f"""
         SELECT 
@@ -252,6 +253,8 @@ class DynamicAnalysisView(ttk.Frame):
         diabetes = self.get_input("Enter diabetes status (1 for yes, 2 for no):", int)
         obesity = self.get_input("Enter obesity status (1 for yes, 2 for no):", int)
         cardio = self.get_input("Enter cardiovascular status (1 for yes, 2 for no):", int)
+        if not self.mainWindow.update_privacy_budget(self.epsilon):
+            return "Privacy budget exceeded. Please reduce the epsilon value."
 
         query = f"""
         SELECT 
@@ -334,6 +337,9 @@ class DynamicAnalysisView(ttk.Frame):
         sex = self.get_input("Enter gender (1 for female, 2 for male):", int)
         tobacco = self.get_input("Enter tobacco status (1 for yes, 2 for no):", int)
 
+        if not self.mainWindow.update_privacy_budget(self.epsilon):
+            return "Privacy budget exceeded. Please reduce the epsilon value."
+
         query = f"""
         SELECT 
             SEX,
@@ -402,6 +408,9 @@ class DynamicAnalysisView(ttk.Frame):
         start_date = self.get_input("Enter start date (YYYY-MM-DD):", str)
         end_date = self.get_input("Enter end date (YYYY-MM-DD):", str)
 
+        if not self.mainWindow.update_privacy_budget(self.epsilon):
+            return "Privacy budget exceeded. Please reduce the epsilon value."
+
         query = f"""
         SELECT 
             COUNT(*) AS Deaths
@@ -449,6 +458,9 @@ class DynamicAnalysisView(ttk.Frame):
         pneumonia = self.get_input("Enter pneumonia status (1 for yes, 2 for no):", int)
         immunosuppressed = self.get_input("Enter immunosuppressed status (1 for yes, 2 for no):", int)
         renal_chronic = self.get_input("Enter chronic renal status (1 for yes, 2 for no):", int)
+
+        if not self.mainWindow.update_privacy_budget(self.epsilon):
+            return "Privacy budget exceeded. Please reduce the epsilon value."
 
         query = f"""
         SELECT 
