@@ -27,8 +27,6 @@ class DataDB:
             values = list(data.values()) + [anonymized_id, user_id]
             success = self.db.execute_query(query, values)
 
-            if success:
-                self._log_audit(user_id, 'INSERT', 'Patients', self.db.cursor.lastrowid)
             return success
         except Exception as e:
             logger.error(f"Error adding patient data: {e}")
@@ -66,8 +64,6 @@ class DataDB:
             values = list(data.values()) + [patient_id]
             success = self.db.execute_query(query, values)
 
-            if success:
-                self._log_audit(user_id, 'UPDATE', 'Patients', patient_id)
             return success
         except Exception as e:
             logger.error(f"Error updating patient data: {e}")
@@ -78,17 +74,7 @@ class DataDB:
             query = "DELETE FROM Patients WHERE patient_id = %s"
             success = self.db.execute_query(query, (patient_id,))
 
-            if success:
-                self._log_audit(user_id, 'DELETE', 'Patients', patient_id)
             return success
         except Exception as e:
             logger.error(f"Error deleting patient data: {e}")
             return False
-
-    def _log_audit(self, user_id: int, action: str, table_name: str,
-                   record_id: int, details: str = '') -> None:
-        query = """
-            INSERT INTO AuditLog (user_id, action, table_name, record_id, details)
-            VALUES (%s, %s, %s, %s, %s)
-        """
-        self.db.execute_query(query, (user_id, action, table_name, record_id, details))

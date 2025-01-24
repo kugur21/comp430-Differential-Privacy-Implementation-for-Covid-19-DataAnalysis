@@ -5,9 +5,7 @@ CREATE_TABLES_QUERIES = {
             username VARCHAR(50) UNIQUE NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
             role ENUM('admin', 'viewer') NOT NULL,
-            last_login TIMESTAMP,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            budget INT DEFAULT 100,
             INDEX idx_username (username)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -46,17 +44,4 @@ CREATE_TABLES_QUERIES = {
             FOREIGN KEY (uploaded_by) REFERENCES Users(user_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
-
-    'audit_log': """
-        CREATE TABLE IF NOT EXISTS AuditLog (
-            log_id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT,
-            action VARCHAR(50) NOT NULL,
-            table_name VARCHAR(50) NOT NULL,
-            record_id INT,
-            details TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES Users(user_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    """
 }

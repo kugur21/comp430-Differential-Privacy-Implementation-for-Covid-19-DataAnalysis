@@ -1,8 +1,8 @@
-username,hashed_password,role
-sarp,$2b$12$WIt1I9/Vq26sj098NFNIs.uYvC0Vrd/ffFxtYIg6K.l1vGQCcUcPi,admin
-alper,$2b$12$UBOJa2Cp.yyJ18hB2e.moONn/DJthR5yS77PGOOK3usEcgMSfKt/C,admin
-serbay,$2b$12$3ylJVmxw3tTYrndc7rF6NO/VHzUHzVOGKdxC16ShOhuAppeINjhX2,admin
-derya,$2b$12$0mOnN5sUZmuwRgTdrNlItuTSFFcwvctReZU.QKUKE7LmZYM8ldCb2,admin
-beyza,$2b$12$cOibJ.OKxswkvNWbyJKmdOg8YE3Y5tvjAT/Qcdn77Fhi9PjcTbUpa,admin
-viewer1,$2b$12$eB7i40AQYwE4o2YZxNEx4erfYPNd3YT8CzyD2UX6gisGu7/ZxD4oC,viewer
-viewer2,$2b$12$G9MzUOYtuMHlG863GVXfsOVSqA82vfPh8u6bJr3yHJxoIP7pqIVSu,viewer
+username,hashed_password,role,budget
+sarp,$2b$12$WIt1I9/Vq26sj098NFNIs.uYvC0Vrd/ffFxtYIg6K.l1vGQCcUcPi,admin,100000
+alper,$2b$12$UBOJa2Cp.yyJ18hB2e.moONn/DJthR5yS77PGOOK3usEcgMSfKt/C,admin,100000
+serbay,$2b$12$3ylJVmxw3tTYrndc7rF6NO/VHzUHzVOGKdxC16ShOhuAppeINjhX2,admin,100000
+derya,$2b$12$0mOnN5sUZmuwRgTdrNlItuTSFFcwvctReZU.QKUKE7LmZYM8ldCb2,admin,100000
+beyza,$2b$12$cOibJ.OKxswkvNWbyJKmdOg8YE3Y5tvjAT/Qcdn77Fhi9PjcTbUpa,admin,100000
+viewer1,$2b$12$eB7i40AQYwE4o2YZxNEx4erfYPNd3YT8CzyD2UX6gisGu7/ZxD4oC,viewer,100
+viewer2,$2b$12$G9MzUOYtuMHlG863GVXfsOVSqA82vfPh8u6bJr3yHJxoIP7pqIVSu,viewer,100

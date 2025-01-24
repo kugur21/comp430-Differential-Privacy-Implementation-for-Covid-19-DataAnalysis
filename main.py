@@ -5,7 +5,7 @@ from gui.main_window import MainWindow
 from database.connection import DatabaseConnection
 from database.initializer import initialize_database
 from utils.security import hash_password
-
+from load_dataset import load_dataset
 
 class Application(tk.Tk):
     def __init__(self):
@@ -23,6 +23,8 @@ class Application(tk.Tk):
 
         # Initialize the database schema
         self.initialize_database()
+        self.load_dataset()
+        self.load_users()
 
         # Setup default admin
         self.setup_default_admin()
@@ -67,6 +69,32 @@ class Application(tk.Tk):
                 print("Admin user already exists. Skipping admin creation.")
         except Exception as e:
             print(f"Error setting up default admin: {e}")
+            self.destroy()
+
+    def load_dataset(self):
+        """
+        Loads the dataset into the database.
+        """
+        try:
+            file_path = "data/reducedCovidData.csv"
+            load_dataset(file_path, self.db)
+        except Exception as e:
+            print(f"Error loading dataset: {e}")
+            self.destroy()
+
+    def load_users(self):
+        """
+        Loads the users from the database for debugging purposes.
+        """
+        try:
+            query = "SELECT * FROM Users"
+            self.db.execute_query(query)
+            users = self.db.cursor.fetchall()
+            print("Users:")
+            for user in users:
+                print(user)
+        except Exception as e:
+            print(f"Error loading users: {e}")
             self.destroy()
 
     def show_login_screen(self):

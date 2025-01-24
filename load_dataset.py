@@ -1,5 +1,4 @@
 import pandas as pd
-from database.connection import DatabaseConnection
 from utils.validators import validate_date, validate_numeric
 
 def load_dataset(file_path, db_connection):
@@ -65,16 +64,3 @@ def load_dataset(file_path, db_connection):
         print(f"Successfully inserted {valid_records} valid records into the database.")
     except Exception as e:
         print(f"An error occurred while processing the dataset: {e}")
-
-
-if __name__ == "__main__":
-    # Path to the dataset
-    file_path = "/mnt/data/reducedCovidData.csv"
-
-    # Initialize database connection
-    db = DatabaseConnection()
-    if db.connect():
-        load_dataset(file_path, db)
-        db.close()
-    else:
-        print("Failed to connect to the database.")
