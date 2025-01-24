@@ -662,10 +662,11 @@ class AnalysisView(ttk.Frame):
     def perform_covid_trends(self):
         try:
             query = """
-            SELECT strftime('%Y-%W', created_at) AS week, COUNT(*) AS weekly_cases 
+            SELECT DATE_FORMAT(created_at, '%Y-%u') AS week, COUNT(*) AS weekly_cases 
             FROM Patients 
             WHERE classification_final = 1 
             GROUP BY week
+            ORDER BY week;
             """
             # Execute query and check if successful
             if not self.db_connection.execute_query(query):
@@ -695,21 +696,39 @@ class AnalysisView(ttk.Frame):
             weeks = list(dp_results.keys())
             cases = list(dp_results.values())
 
-            fig, ax = plt.subplots(figsize=(10, 5))  # Adjusted figure size
-            plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+            fig, ax = plt.subplots(figsize=(10, 5))  # Adjust figure size
+            plt.style.use('ggplot') 
 
             # Plot the data with a modern color palette
-            ax.plot(
-                weeks,
-                cases,
-                marker='o',
-                linestyle='-',
-                color='#2ecc71',
-                linewidth=2,
-                markersize=6
-            )
+            if len(weeks) > 1:
+                ax.plot(
+                    weeks,
+                    cases,
+                    marker='o',
+                    linestyle='-',
+                    color='#2ecc71',
+                    linewidth=2,
+                    markersize=8,
+                    label="Weekly Cases"
+                )
+            else:
+                # For single data point, use scatter and annotate for visibility
+                ax.scatter(
+                    weeks,
+                    cases,
+                    color='#2ecc71',
+                    s=150,  # Increase the dot size for better visibility
+                  
+                )
+                ax.annotate(f"{cases[0]:.2f}",
+                            (weeks[0], cases[0]),
+                            textcoords="offset points",
+                            xytext=(0, 10),
+                            ha='center',
+                            color='white',
+                            fontweight='bold')
 
-            # Set titles and labels with improved font sizes
+            # Set titles and labels with improved font sizes and colors
             ax.set_title(f"COVID Trends Over Time (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
             ax.set_xlabel("Weeks", fontsize=12, color='white')
             ax.set_ylabel("Noisy Cases", fontsize=12, color='white')
@@ -727,6 +746,9 @@ class AnalysisView(ttk.Frame):
             # Set the background color of the plot
             ax.set_facecolor('#2e2e2e')
             fig.patch.set_facecolor('#2e2e2e')
+
+            # Add a legend for clarity
+            ax.legend(loc='upper left', fontsize=10, facecolor='#2e2e2e')
 
             # Adjust layout to prevent overlap
             plt.tight_layout()
@@ -1070,8 +1092,10 @@ class AnalysisView(ttk.Frame):
         if not results:
             return "No data available for mortality analysis."
 
-        age_groups = {f"{row['age_group']}-{row['age_group'] + 9}": float(row['total_cases']) for row in results}
+        # Convert data to appropriate types
+        age_groups = {str(row["age_group"]) + "-" + str(row["age_group"] + 9): float(row["total_cases"]) for row in results}
 
+        # Apply Report Noisy Max to find the most affected age group
         most_affected_group_index = apply_differential_privacy(
             data=list(age_groups.values()),
             mechanism="ReportNoisyMax",
@@ -1081,32 +1105,26 @@ class AnalysisView(ttk.Frame):
 
         most_affected_group = list(age_groups.keys())[most_affected_group_index]
 
-
+        # Prepare visualization data
         age_labels = list(age_groups.keys())
         affected_counts = list(age_groups.values())
 
-        fig, ax = plt.subplots(figsize=(8, 5))  # Adjusted figure size
-        plt.style.use('ggplot')  # Use seaborn style for better aesthetics
+        # Create the horizontal bar chart
+        fig, ax = plt.subplots(figsize=(8, 5))
+        bars = ax.barh(age_labels, affected_counts, color='#3498db', edgecolor='black')
 
-        # Plot the data with a modern color palette
-        colors = plt.cm.viridis(np.linspace(0, 1, len(age_labels)))
-        bars = ax.barh(age_labels, affected_counts, color=colors, edgecolor='black')
+        ax.set_title(f"Most Affected Age Groups (ε={self.epsilon:.2f})", fontsize=14, pad=15, fontweight='bold')
+        ax.set_ylabel("Age Groups", fontsize=12)
+        
+        # Hide X-axis labels for a cleaner look
+        ax.set_xlabel("")
+        ax.set_xticklabels([])
+        ax.set_xticks([])
 
-        # Set titles and labels with improved font sizes
-        ax.set_title(f"Most Affected Age Groups (ε={self.epsilon:.2f})", fontsize=14, pad=15, color='white')
-        ax.set_ylabel("Age Groups", fontsize=12, color='white')
+        # Add grid lines for readability
+        ax.grid(axis='y', linestyle='--', alpha=0.3)
 
-        # --- SAYISAL EKSENİ GİZLEME ---
-        ax.set_xlabel("")  # x ekseni etiketini boş yap
-        ax.set_xticklabels([])  # x ekseni üzerindeki yazıları gizle
-        ax.set_xticks([])  # x ekseni üzerindeki çizgileri kaldır
-
-        # Çizgiler (grid) de istenmiyorsa:
-        # ax.grid(False)  # tüm ızgarayı kapatabilir
-        # veya sadece x ekseni gridini kapatmak için:
-        ax.grid(axis='y', linestyle='--', alpha=0.3)  # sadece yatay çizgiler kalsın
-
-        # Seçilen kategoriyi kırmızıya boyayalım
+        # Highlight the most affected age group in red
         for i, lbl in enumerate(age_labels):
             if lbl == most_affected_group:
                 bars[i].set_color('#e74c3c')
@@ -1120,19 +1138,13 @@ class AnalysisView(ttk.Frame):
                     fontweight='bold'
                 )
 
-        # Set the color of the tick labels
-        ax.tick_params(axis='y', colors='white')
-
-        # Set the background color of the plot
-        ax.set_facecolor('#2e2e2e')
-        fig.patch.set_facecolor('#2e2e2e')
-
-        # Adjust layout to prevent overlap
-        plt.tight_layout()
-
         self.display_graph(fig)
 
         return f"The most affected age group is {most_affected_group} years."
+
+
+
+
 
     def perform_high_risk_survivors(self):
         query = """
