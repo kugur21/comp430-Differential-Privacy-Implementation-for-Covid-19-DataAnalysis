@@ -827,7 +827,6 @@ class AnalysisView(ttk.Frame):
             data,
             mechanism="ReportNoisyMax",
             epsilon=self.epsilon,
-            sensitivity=1,  # sayım sorgusu için
             query=query
         )
 
@@ -911,7 +910,6 @@ class AnalysisView(ttk.Frame):
             mechanism="Exponential",
             epsilon=self.epsilon,
             utility=died_counts,
-            sensitivity=1,
             query=query
         )
 
@@ -996,9 +994,9 @@ class AnalysisView(ttk.Frame):
 
         dp_total_cases = max(
             apply_differential_privacy(self.db_connection, [total_cases], mechanism="Gaussian", epsilon=self.epsilon,
-                                       sensitivity=1, query=query)[0] + noise_total, 0)
+                                       query=query)[0] + noise_total, 0)
         dp_recovered_cases = max(apply_differential_privacy(self.db_connection, [recovered_cases], mechanism="Gaussian",
-                                                            epsilon=self.epsilon, sensitivity=1, query=query)[
+                                                            epsilon=self.epsilon, query=query)[
                                      0] + noise_recovered, 0)
 
         print(f"DP - Total Cases: {dp_total_cases}, Recovered Cases: {dp_recovered_cases}")
@@ -1057,13 +1055,13 @@ class AnalysisView(ttk.Frame):
 
         dp_total_cases = {
             group: apply_differential_privacy(self.db_connection, [count], mechanism="Gaussian", epsilon=self.epsilon,
-                                              sensitivity=1, query=query)[0]
+                                              query=query)[0]
             for group, count in age_groups.items()
         }
 
         dp_deaths = {
             group: apply_differential_privacy(self.db_connection, [count], mechanism="Laplace", epsilon=self.epsilon,
-                                              sensitivity=1, query=query)[0]
+                                              query=query)[0]
             for group, count in deaths.items()
         }
 
@@ -1140,7 +1138,6 @@ class AnalysisView(ttk.Frame):
             data=list(age_groups.values()),
             mechanism="ReportNoisyMax",
             epsilon=self.epsilon,
-            sensitivity=1,
             query=query
         )
 
@@ -1205,7 +1202,6 @@ class AnalysisView(ttk.Frame):
             [len(results)],
             mechanism="Laplace",
             epsilon=self.epsilon,
-            sensitivity=1,
             query=query
         )[0]
 
@@ -1215,7 +1211,6 @@ class AnalysisView(ttk.Frame):
             mechanism="Exponential",
             epsilon=self.epsilon,
             utility=ages,
-            sensitivity=1,
             query=query
         )
 

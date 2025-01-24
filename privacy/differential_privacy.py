@@ -28,6 +28,19 @@ def calculate_sensitivity(db_connection, query):
     elif "group by" in query:
         # GROUP BY sorguları için sensitivity genellikle 1'dir.
         return 1
+    elif "min" in query or "max" in query:
+        # MIN veya MAX sorguları için sensitivity, sütundaki maksimum değere bağlıdır.
+        column = query.split("min(")[1].split(")")[0] if "min" in query else query.split("max(")[1].split(")")[0]
+        max_query = f"SELECT MAX({column}) FROM Patients;"
+        db_connection.execute_query(max_query)
+        result = db_connection.cursor.fetchone()
+        return result[f"MAX({column})"] if result else 1
+    elif "case" in query:
+        # CASE WHEN sorguları için sensitivity genellikle 1'dir.
+        return 1
+    elif "where" in query:
+        # WHERE koşulu içeren sorgular için sensitivity genellikle 1'dir.
+        return 1
     else:
         # Diğer sorgular için varsayılan sensitivity değeri.
         return 1
@@ -76,3 +89,4 @@ def exponential_mechanism(data, utility, epsilon, sensitivity=1):
     probabilities = np.exp((epsilon * np.array(scaled_utilities)) / 2)
     probabilities /= probabilities.sum()  # Normalize
     return np.random.choice(data, p=probabilities)
+
