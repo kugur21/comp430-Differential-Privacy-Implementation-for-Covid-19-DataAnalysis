@@ -222,10 +222,11 @@ class DynamicAnalysisView(ttk.Frame):
 
         # Apply differential privacy
         dp_result = apply_differential_privacy(
+            self.db_connection,
             [result["Patient_Count"]],
             mechanism="Laplace",
             epsilon=self.epsilon,
-            sensitivity=1
+            query=query
         )[0]
 
         # Create a bar chart for visualization
@@ -273,10 +274,11 @@ class DynamicAnalysisView(ttk.Frame):
         # Apply differential privacy
         dp_results = {
             row["classification_group"]: apply_differential_privacy(
+                self.db_connection,
                 [row["Patient_Count"]],
                 mechanism="Laplace",
                 epsilon=self.epsilon,
-                sensitivity=1
+                query=query
             )[0]
             for row in results
         }
@@ -356,16 +358,18 @@ class DynamicAnalysisView(ttk.Frame):
 
         # Apply differential privacy
         dp_total = apply_differential_privacy(
+            self.db_connection,
             [total_patients],  # Use the converted float value
             mechanism="Laplace",
             epsilon=self.epsilon,
-            sensitivity=1
+            query=query
         )[0]
         dp_icu = apply_differential_privacy(
+            self.db_connection,
             [icu_admissions],  # Use the converted float value
             mechanism="Laplace",
             epsilon=self.epsilon,
-            sensitivity=1
+            query=query
         )[0]
 
         # Create a bar chart for visualization
@@ -412,10 +416,11 @@ class DynamicAnalysisView(ttk.Frame):
 
         # Apply differential privacy
         dp_result = apply_differential_privacy(
+            self.db_connection,
             [result["Deaths"]],
             mechanism="Laplace",
             epsilon=self.epsilon,
-            sensitivity=1
+            query=query
         )[0]
 
         # Create a figure/axes
@@ -465,10 +470,11 @@ class DynamicAnalysisView(ttk.Frame):
         # Apply differential privacy
         dp_results = {
             "ICU Admitted" if row["ICU"] == 1 else "Not Admitted to ICU": apply_differential_privacy(
+                self.db_connection,
                 [row["Patient_Count"]],
                 mechanism="Laplace",
                 epsilon=self.epsilon,
-                sensitivity=1
+                query=query
             )[0]
             for row in results
         }
