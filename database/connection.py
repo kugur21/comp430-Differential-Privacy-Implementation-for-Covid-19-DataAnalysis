@@ -1,5 +1,5 @@
 import mysql.connector
-from mysql.connector import Error, pooling
+from mysql.connector import Error
 from config.settings import DB_CONFIG
 import logging
 

@@ -37,9 +37,7 @@ APP_CONFIG = {
         'height': int(os.getenv('WINDOW_HEIGHT', 800))
     },
     'max_upload_size': int(os.getenv('MAX_UPLOAD_SIZE', 10 * 1024 * 1024)),  # 10MB
-    'allowed_file_types': ['.csv'],
-    'temp_dir': os.getenv('TEMP_DIR', os.path.join(BASE_DIR, 'temp')),
-    'export_dir': os.getenv('EXPORT_DIR', os.path.join(BASE_DIR, 'exports'))
+    'allowed_file_types': ['.csv']
 }
 
 # Privacy configuration
