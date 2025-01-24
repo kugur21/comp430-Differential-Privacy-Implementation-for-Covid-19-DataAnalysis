@@ -74,7 +74,7 @@ logging.config.dictConfig(LOGGING_CONFIG)
 
 
 # Ensure required directories exist
-for directory in [APP_CONFIG['temp_dir'], APP_CONFIG['export_dir'], os.path.join(BASE_DIR, 'logs')]:
+for directory in [os.path.join(BASE_DIR, 'logs')]:
     os.makedirs(directory, exist_ok=True)
 
 # Initialize logging
