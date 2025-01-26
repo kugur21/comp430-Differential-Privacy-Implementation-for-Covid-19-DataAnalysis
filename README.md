@@ -15,10 +15,10 @@ To run the project, change DB environment values in `.env` file.
 
 Also, account information for login are:
 
-- **Username:** Sarp, **Password:** sarp123, **Role:** admin (Privacy Budget: 100000)  
-- **Username:** Alper, **Password:** alper123, **Role:** admin (Privacy Budget: 100000)  
-- **Username:** Serbay, **Password:** serbay123, **Role:** admin (Privacy Budget: 100000)  
-- **Username:** Derya, **Password:** derya123, **Role:** admin (Privacy Budget: 100000)  
-- **Username:** Beyza, **Password:** beyza123, **Role:** admin (Privacy Budget: 100000)  
-- **Username:** Viewer1, **Password:** viewer123, **Role:** viewer (Privacy Budget: 100)  
-- **Username:** Viewer2, **Password:** viewer456, **Role:** viewer (Privacy Budget: 100)
+- **Username:** sarp, **Password:** sarp123, **Role:** admin (Privacy Budget: 100000)  
+- **Username:** alper, **Password:** alper123, **Role:** admin (Privacy Budget: 100000)  
+- **Username:** serbay, **Password:** serbay123, **Role:** admin (Privacy Budget: 100000)  
+- **Username:** derya, **Password:** derya123, **Role:** admin (Privacy Budget: 100000)  
+- **Username:** beyza, **Password:** beyza123, **Role:** admin (Privacy Budget: 100000)  
+- **Username:** viewer1, **Password:** viewer123, **Role:** viewer (Privacy Budget: 100)  
+- **Username:** viewer2, **Password:** viewer456, **Role:** viewer (Privacy Budget: 100)
