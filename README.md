@@ -5,11 +5,11 @@ This project leverages Differential Privacy (DP) techniques to analyze and predi
 ## Contributors
 This project was developed as part of the COMP430 Term Project at Koç University by:
 
-- **Beyza Türkmen** - 
-- **Derya Süleymanoğlu** - 
-- **Sarp Çağan Kelleci** - 
-- **Alper Şahin** -
-- **Kemal Serbay Uğur** -
+- **Beyza Türkmen**  
+- **Derya Süleymanoğlu**  
+- **Sarp Çağan Kelleci**  
+- **Alper Şahin** 
+- **Kemal Serbay Uğur** 
 
 To run the project, change DB environment values in `.env` file.
 
